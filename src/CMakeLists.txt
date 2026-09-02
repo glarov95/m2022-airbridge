@@ -35,10 +35,19 @@ target_include_directories(pappl::pappl SYSTEM INTERFACE "${M2022_PAPPL_PREFIX}/
 target_link_libraries(pappl::pappl INTERFACE ${M2022_PAPPL_LINK})
 
 # Common pieces shared by the CLI and (later) the PAPPL application.
-add_library(m2022_common STATIC common/version.c common/json.c)
+find_package(ZLIB REQUIRED)
+add_library(m2022_common STATIC common/version.c common/json.c common/fileio.c)
 target_include_directories(m2022_common PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_compile_definitions(m2022_common PRIVATE M2022_VERSION_STRING="${PROJECT_VERSION}")
-target_link_libraries(m2022_common PUBLIC m2022_warnings)
+target_link_libraries(m2022_common PUBLIC m2022_warnings ZLIB::ZLIB)
+
+# Raster ingest, tone curve, geometry, CUPS raster header. Pure (ADR-005).
+add_library(m2022_raster STATIC raster/convert.c raster/tone.c raster/cupsraster.c)
+target_link_libraries(m2022_raster PUBLIC m2022_common m)
+
+# Halftoning and presets. Pure.
+add_library(m2022_halftone STATIC halftone/halftone.c halftone/bluenoise64.c)
+target_link_libraries(m2022_halftone PUBLIC m2022_raster)
 
 # USB printer-class transport plus its pure helpers (IEEE 1284 parsing, status mapping).
 add_library(m2022_usb STATIC usb/usb.c usb/ieee1284.c usb/status.c)
@@ -61,5 +70,5 @@ target_link_libraries(m2022_media PUBLIC m2022_common)
 add_library(m2022_app STATIC app/app.c)
 target_link_libraries(m2022_app PUBLIC m2022_common m2022_media pappl::pappl)
 
-add_executable(m2022-airbridge cli/main.c cli/cmd_probe.c cli/cmd_send.c cli/cmd_decode.c cli/cmd_server.c)
-target_link_libraries(m2022-airbridge PRIVATE m2022_usb m2022_cups m2022_qpdl m2022_app)
+add_executable(m2022-airbridge cli/main.c cli/cmd_probe.c cli/cmd_send.c cli/cmd_decode.c cli/cmd_server.c cli/cmd_render.c)
+target_link_libraries(m2022-airbridge PRIVATE m2022_usb m2022_cups m2022_qpdl m2022_app m2022_halftone)

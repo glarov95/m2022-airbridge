@@ -10,17 +10,19 @@ driver from the bytes up is a good way to learn how printing actually works.
 
 ## Status
 
-**M2 complete, v0.2.** The printer's language is fully decoded and verified against 42 captured
-vendor jobs; a captured job replayed through our own USB transport prints (v0.1); and the
-Printer Application runs: iPhone and Mac discover it over Bonjour, IPP Everywhere attribute
-checks pass, and their jobs arrive as Apple Raster into a capture device (v0.2). Next: the
-raster and halftone pipeline (M3). See [PROGRESS.md](PROGRESS.md).
+**M3 complete.** The printer's language is fully decoded and verified against 42 captured
+vendor jobs; a captured job replayed through our own USB transport prints (v0.1); the Printer
+Application runs and receives Apple Raster jobs from iPhone and Mac (v0.2); and the raster and
+halftone pipeline exists, measured against the vendor's own output (text: 99.99 % pixel
+agreement). Next: the band codec encoder (M4), the QPDL encoder (M5), then the first native
+print (M6). See [PROGRESS.md](PROGRESS.md).
 
 | Milestone | What it delivers |
 |---|---|
 | M0–M1 ✅ | probe, vendor fixtures, USB transport, `decode` |
 | M2 ✅ | printer visible to iPhone/iPad/Mac; incoming raster captured |
-| M3–M5 | raster, halftone, band codec, QPDL encoder |
+| M3 ✅ | raster ingest, tone curve, five halftone methods, presets |
+| M4–M5 | band codec encoder, QPDL encoder |
 | M6 | first page printed with no vendor code (v0.3) |
 | M7–M8 | launchd service, installer, reliability soak (v1.0) |
 | M9–M11 | status reporting, print quality program, signed release |
@@ -61,6 +63,7 @@ Hardware tests need the printer switched on and print a page: `ctest --test-dir 
 ./build/src/m2022-airbridge send JOB.spl     # write a printer-native job over USB
 ./build/src/m2022-airbridge decode JOB.spl --pbm out   # explain a job; pages to out-p1.pbm ...
 ./build/src/m2022-airbridge server --capture DIR       # run the Printer Application (port 8000)
+./build/src/m2022-airbridge render IN.pgm --preset photo --out page.pbm   # halftone a page
 ```
 
 ## Fixtures
