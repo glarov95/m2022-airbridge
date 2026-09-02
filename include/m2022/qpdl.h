@@ -26,6 +26,7 @@
 #define M2022_CODEC11_MAX_LITERAL 128 /* 1..128; the vendor uses the full range */
 #define M2022_CODEC11_MAX_MATCH 514   /* 3 + 511 */
 #define M2022_CODEC11_CHECKSUM_LEN 4
+#define M2022_CODEC11_MIN_RAW 64 /* shortest raw prefix in 867 vendor bands; we never go lower */
 
 enum {
     M2022_QPDL_REC_PAGE = 0x00,
@@ -42,7 +43,7 @@ enum {
     M2022_QPDL_EMAGIC = -2001,     /* 0x11 payload does not start with 0x09ABCDEF */
     M2022_QPDL_ERAWLEN = -2002,    /* raw length above 128 */
     M2022_QPDL_EOFFSET = -2003,    /* match reaches before the start of the output */
-    M2022_QPDL_EOVERFLOW = -2004,  /* decoded data exceeds the output buffer */
+    M2022_QPDL_EOVERFLOW = -2004,  /* output buffer too small (decoded data, or encoded payload) */
     M2022_QPDL_ECHECKSUM = -2005,  /* payload decoded, but the stored checksum differs */
     M2022_QPDL_ERECORD = -2006,    /* unknown record type */
     M2022_QPDL_ENOPJL = -2007,     /* no "@PJL ENTER LANGUAGE=QPDL" line */
@@ -127,6 +128,40 @@ typedef struct {
  */
 int m2022_codec11_decode(const uint8_t *payload, size_t len, uint8_t *out, size_t out_cap,
                          size_t *out_len, m2022_codec11_info_t *info);
+
+/*
+ * Encode one band (column-major, 1 = white; see the band layout below) into a payload the
+ * printer accepts: little-endian header, a raw prefix of 64..128 bytes holding the leading
+ * literals (the vendor's habit, measured on every fixture band), greedy longest-match tokens
+ * over the table's 64 distances, and the big-endian checksum. Table entries of 0 are never
+ * used; duplicates are harmless. Pure, deterministic, no allocation.
+ *
+ * Returns 0, or M2022_QPDL_EOVERFLOW when out_cap is smaller than the payload; *out_len is
+ * the payload length on success. Size the buffer with m2022_codec11_encode_bound().
+ */
+int m2022_codec11_encode(const uint8_t *band, size_t len,
+                         const uint16_t table[M2022_CODEC11_TABLE_ENTRIES], uint8_t *out,
+                         size_t out_cap, size_t *out_len);
+
+/* Largest payload m2022_codec11_encode() can produce for a band of len bytes. */
+size_t m2022_codec11_encode_bound(size_t len);
+
+/*
+ * The 64 distances that cover the most bytes of this band under a greedy parse (found with a
+ * 3-byte hash of recent positions, distances up to 4096); slots left over are filled from the
+ * default table. The result has no zero and no duplicate entries. Bands are at most a few
+ * hundred KB, so positions fit 32 bits.
+ */
+void m2022_codec11_choose_table(const uint8_t *band, size_t len,
+                                uint16_t table[M2022_CODEC11_TABLE_ENTRIES]);
+
+/*
+ * A fixed table for callers that skip the per-band choice: the distances that carry the
+ * vendor's own streams (docs/spl-qpdl.md section 3.3): the line above (1) and the
+ * byte-columns to the left (multiples of 128) with their diagonal neighbours, small vertical
+ * periods for ordered screens, and a few further columns.
+ */
+extern const uint16_t m2022_codec11_default_table[M2022_CODEC11_TABLE_ENTRIES];
 
 /* ---- band layout --------------------------------------------------------------------- */
 

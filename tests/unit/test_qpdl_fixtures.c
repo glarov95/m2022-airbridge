@@ -2,6 +2,8 @@
  * Decode every captured vendor job under fixtures/oracle/samsung (and media/): the walker
  * must accept them all, every 0x11 band must decode to exactly width/8 * 128 bytes with a
  * matching checksum, and the black-square page must contain the square where it belongs.
+ * Every decoded band is then re-encoded with our encoder (default table and per-band table),
+ * decoded again and compared, and the byte totals are held against the vendor's.
  */
 #include "m2022/qpdl.h"
 
@@ -19,8 +21,15 @@ typedef struct {
     int raw64, raw128, raw_other;
     uint32_t min_raw;
     size_t max_literal;
-    uint8_t *band_buf, *rows_buf;
+    uint8_t *band_buf, *rows_buf, *enc_buf, *dec_buf;
     size_t cap;
+    /* re-encoding */
+    size_t vendor_bytes, ours_default, ours_chosen;
+    double worst_ratio; /* chosen-table payload / vendor payload, per band */
+    const char *file;   /* being decoded */
+    char worst_file[64];
+    int worst_band, reencode_bad;
+    size_t worst_vendor, worst_ours;
     /* black-square check */
     bool check_square;
     int square_lines_ok, square_lines_seen;
@@ -72,6 +81,51 @@ static void first_black_run(const uint8_t *row, size_t bpr, int *start, int *len
     }
 }
 
+/* Our encoder on the vendor's band: exact round trip with both table strategies, sizes kept. */
+static void reencode(ctx_t *d, const m2022_qpdl_band_header_t *h, size_t expect)
+{
+    uint16_t table[M2022_CODEC11_TABLE_ENTRIES];
+    size_t cap = m2022_codec11_encode_bound(expect), n = 0, out_len = 0;
+    double ratio;
+
+    d->vendor_bytes += h->length;
+    if (m2022_codec11_encode(d->band_buf, expect, m2022_codec11_default_table, d->enc_buf, cap,
+                             &n) != 0 ||
+        m2022_codec11_decode(d->enc_buf, n, d->dec_buf, expect, &out_len, NULL) != 0 ||
+        out_len != expect || memcmp(d->dec_buf, d->band_buf, expect) != 0) {
+        d->reencode_bad++;
+        return;
+    }
+    d->ours_default += n;
+
+    m2022_codec11_choose_table(d->band_buf, expect, table);
+    if (m2022_codec11_encode(d->band_buf, expect, table, d->enc_buf, cap, &n) != 0 ||
+        m2022_codec11_decode(d->enc_buf, n, d->dec_buf, expect, &out_len, NULL) != 0 ||
+        out_len != expect || memcmp(d->dec_buf, d->band_buf, expect) != 0) {
+        d->reencode_bad++;
+        return;
+    }
+    d->ours_chosen += n;
+    ratio = (double)n / (double)h->length;
+    if (ratio > d->worst_ratio) {
+        const char *base = strrchr(d->file, '/');
+        d->worst_ratio = ratio;
+        snprintf(d->worst_file, sizeof d->worst_file, "%s", base ? base + 1 : d->file);
+        d->worst_band = h->number;
+        d->worst_vendor = h->length;
+        d->worst_ours = n;
+    }
+}
+
+static void ctx_free(ctx_t *d)
+{
+    free(d->band_buf);
+    free(d->rows_buf);
+    free(d->enc_buf);
+    free(d->dec_buf);
+    memset(d, 0, sizeof *d);
+}
+
 static void on_band(void *c, size_t o, const m2022_qpdl_band_header_t *h, const uint8_t *payload)
 {
     ctx_t *d = c;
@@ -84,8 +138,12 @@ static void on_band(void *c, size_t o, const m2022_qpdl_band_header_t *h, const 
     if (expect > d->cap) {
         free(d->band_buf);
         free(d->rows_buf);
+        free(d->enc_buf);
+        free(d->dec_buf);
         d->band_buf = malloc(expect);
         d->rows_buf = malloc(expect);
+        d->enc_buf = malloc(m2022_codec11_encode_bound(expect));
+        d->dec_buf = malloc(expect);
         d->cap = expect;
     }
     rc = m2022_codec11_decode(payload, h->length, d->band_buf, d->cap, &out_len, &info);
@@ -109,6 +167,7 @@ static void on_band(void *c, size_t o, const m2022_qpdl_band_header_t *h, const 
     if (info.max_literal > d->max_literal) {
         d->max_literal = info.max_literal;
     }
+    reencode(d, h, expect);
     if (d->check_square && h->number >= 22 && h->number <= 30) {
         /* rows fully inside the 50 mm square: black run starts at 1785, 1182 px wide */
         m2022_qpdl_band_to_rows(d->band_buf, bpr, d->rows_buf);
@@ -135,6 +194,7 @@ static int decode_file(const char *path, ctx_t *d, bool check_square)
         return -1;
     }
     d->check_square = check_square;
+    d->file = path;
     rc = m2022_qpdl_walk(data, len, &v, d, &err_off);
     if (rc != 0) {
         fprintf(stderr, "%s: walk failed at %zu: %s\n", path, err_off, m2022_qpdl_strerror(rc));
@@ -184,21 +244,33 @@ int main(void)
             files, d.pages, d.bands, d.bad, d.raw64, d.raw128, d.raw_other, d.min_raw,
             d.max_literal);
 
+    /* re-encoding: exact everywhere, and not much bigger than the vendor's own streams */
+    CHECK_EQ_INT(d.reencode_bad, 0);
+    fprintf(stderr, "re-encoded: vendor %zu B, ours default table %zu B (%.3f), per-band table "
+                    "%zu B (%.3f), worst band %.2f (%s #%d: vendor %zu B, ours %zu B)\n",
+            d.vendor_bytes, d.ours_default, (double)d.ours_default / (double)d.vendor_bytes,
+            d.ours_chosen, (double)d.ours_chosen / (double)d.vendor_bytes, d.worst_ratio,
+            d.worst_file, d.worst_band, d.worst_vendor, d.worst_ours);
+    /* measured 2026-09-02: 0.764 with the per-band table, 0.912 with the default one, and no
+     * single band larger than the vendor's; the margins below catch a regression, not noise */
+    CHECK(d.ours_chosen <= d.vendor_bytes * 85 / 100);
+    CHECK(d.ours_default <= d.vendor_bytes);
+    CHECK(d.worst_ratio <= 1.1);
+    ctx_free(&d);
+
     /* geometry of the black square */
-    memset(&d, 0, sizeof d);
     CHECK_EQ_INT(decode_file(M2022_FIXTURE_DIR "/black-square-a4.spl", &d, true), 0);
     CHECK_EQ_INT(d.pages, 1);
     CHECK_EQ_INT(d.bands, 11);
     CHECK_EQ_INT(d.square_lines_seen, 9 * 128);
     CHECK_EQ_INT(d.square_lines_ok, 9 * 128);
-    free(d.band_buf);
-    free(d.rows_buf);
+    ctx_free(&d);
 
     /* blank page: one page, no bands */
-    memset(&d, 0, sizeof d);
     CHECK_EQ_INT(decode_file(M2022_FIXTURE_DIR "/blank-a4.spl", &d, false), 0);
     CHECK_EQ_INT(d.pages, 1);
     CHECK_EQ_INT(d.bands, 0);
+    ctx_free(&d);
 
     TEST_MAIN_END();
 }

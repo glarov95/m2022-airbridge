@@ -5,35 +5,44 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Where we are
 
-- **Milestone:** M3 complete. Raster ingest, tone curve and five halftone methods with presets
-  exist as pure modules, tested against the vendor's own output (Text preset: 99.99 % pixel
-  agreement on the text page). Next: M4, the 0x11 band codec encoder.
+- **Milestone:** M4 complete. The 0x11 band codec now has an encoder with a per-band
+  offset-table choice: every vendor band re-encodes exactly in 0.76 of the vendor's bytes, and
+  our own halftones round-trip through it. Next: M5, the QPDL encoder and the `encode` command.
 - **Last update:** 2026-09-02.
 - **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD). The vendor CUPS
   queue `Samsung_M2020_Series` is still installed and idle; it stays until M7 removes it.
 
 ## Next up
 
-**M4 — Band codec 0x11 encoder** (SPEC.md 6.5; docs/spl-qpdl.md section 3; decoder in
-`src/qpdl/codec11.c`).
+**M5 — QPDL encoder and `encode` command** (SPEC.md 6.4; docs/spl-qpdl.md sections 1 and 2;
+record serialisers already exist in `src/qpdl/records.c`, the codec in `src/qpdl/codec11.c`,
+media codes in `src/app/media.c`).
 
-1. `m2022_codec11_encode(const uint8_t *band, size_t len, const uint16_t table[64], uint8_t *out,
-   size_t out_cap, size_t *out_len)`: write the little-endian header (magic, raw length, table),
-   copy the raw prefix, then greedy longest-match tokens over the 64 offsets (match length 3..514,
-   literal runs 1..128), then the big-endian checksum of the payload. Pure, no allocation.
-2. Offset-table strategy: start with the vendor's text-page table (docs/spl-qpdl.md); add a
-   helper that picks a table from a band's statistics later if compression ratio needs it.
-   Any table is valid for the printer (verified: the vendor changes it per band).
-3. `m2022_qpdl_rows_to_band()` already exists for the column-major layout; the encoder takes the
-   column-major band.
-4. Tests: encode→decode round trip exact on every vendor band (decode vendor → rows → band →
-   encode → decode), on random data and on edge cases (all white, all black, width not a
-   multiple of 8 is impossible here since band widths are multiples of 256); compressed size
-   within ~1.5× of the vendor's for the same band; fuzz the decoder with encoder output.
-5. `m2022-airbridge encode-band` is not needed; `encode` (M5) will use it. Update
-   docs/spl-qpdl.md with the encoder's ratio versus the vendor.
-
-Start by reading docs/spl-qpdl.md section 3 and `src/qpdl/codec11.c` (the decoder is the spec).
+1. `src/qpdl/encode.c` behind `include/m2022/qpdl.h`: a job-options struct (media from
+   `m2022/media.h`, feeder auto/manual, media type as the PJL `PAPERTYPE` string, copies,
+   manual duplex with binding, resolution 600 or 1200, skip blank pages) and a streaming API:
+   begin job (PJL envelope exactly as the vendor's in docs/spl-qpdl.md section 1, with the
+   `SERVICEDATE` passed in by the caller so tests are deterministic), begin page (0x00 record
+   from the media table: paper code, width and height in 1/300 in, halved unit at 1200 dpi),
+   add band (rows → `m2022_qpdl_rows_to_band` → `m2022_codec11_choose_table` →
+   `m2022_codec11_encode` → 0x0C record; all-white bands omitted), end page (0x01, copies 1),
+   end job (0x09 + UEL). Output through a write callback; buffers sized once per page.
+2. Band geometry: band width = ceil(raster width / 256) × 256, rows padded with white on the
+   right, 128-line bands with the last one padded with white lines. Band numbers count from 0
+   at the top of the printable area, including omitted blank bands.
+3. `m2022-airbridge encode IN.pgm|IN.pbm|IN.ras[.gz] [--preset|--method ...] [--media A4]
+   [--copies N] [--out FILE]`: raster → tone → halftone (M3) → bands → job; share the option
+   parsing with `render`. `decode` must explain the result byte by byte.
+4. Tests: encode the vendor's input rasters (`fixtures/oracle/samsung/*.ras.gz`) and compare
+   with the vendor's `.spl` structurally: same PJL lines except `SERVICEDATE` and the OS
+   comment, byte-identical page header, same band numbers and widths, same set of omitted
+   bands, every band decoding to exactly our halftone output, the whole job accepted by
+   `m2022_qpdl_walk`; the media sweep gives 14 page headers to compare byte for byte with
+   `fixtures/oracle/samsung/media/*.spl`. The black square through the Text preset should
+   decode to the vendor's identical bitmap.
+5. Hardware (only when the user says the printer is on): `send` our own `encode` output of
+   the black square, then the text page; that is the first native print and the start of M6.
+   Also send the Floyd–Steinberg photo page to answer SPEC.md question 13 (page size limit).
 
 ## Milestones
 
@@ -42,9 +51,9 @@ Start by reading docs/spl-qpdl.md section 3 and `src/qpdl/codec11.c` (the decode
 | M0 | Environment probe and vendor capture | done | 2026-09-02 | 6e96237 |
 | M1 | Repository, USB transport, replay, decoder | done, v0.1 | 2026-09-02 | 1b73582, 670be60 |
 | M2 | PAPPL skeleton with capture device | done, v0.2 | 2026-09-02 | a8c6b5b + follow-up |
-| M3 | Raster and halftone pipeline | done | 2026-09-02 | (this commit) |
-| M4 | Band codec 0x11 encoder | next | | |
-| M5 | QPDL encoder and `encode` | todo | | |
+| M3 | Raster and halftone pipeline | done | 2026-09-02 | 5e18397 |
+| M4 | Band codec 0x11 encoder | done | 2026-09-02 | (this commit) |
+| M5 | QPDL encoder and `encode` | next | | |
 | M6 | First native print (v0.3) | todo | | |
 | M7 | Service, installer, doctor | todo | | |
 | M8 | Reliability soak (v1.0) | todo | | |
@@ -57,6 +66,11 @@ Start by reading docs/spl-qpdl.md section 3 and `src/qpdl/codec11.c` (the decode
 - The printer's language is fully decoded and verified against 42 captured jobs, 867 bands:
   `docs/spl-qpdl.md`. Compression is 0x11 (not JBIG), band width = ceil(raster width / 256) × 256,
   offset tables vary per band, "Best" is a real 1200 dpi mode.
+- Our 0x11 encoder follows the vendor's raw-prefix rule (leading literals, 64..128 bytes) and
+  picks the offset table per band; on all 867 vendor bands it needs 0.76 of the vendor's
+  bytes and never more for a band. Ordered screens compress 4× better than the vendor's
+  output, blue noise costs 2–2.5×, Floyd–Steinberg 6.8× (740 KB photo page): docs/spl-qpdl.md
+  3.3–3.4, SPEC.md risk 12 and question 13.
 - USB access works unprivileged with libusb; the device ID advertises `URF`: `docs/usb.md`.
 - The vendor driver is Intel-only and stops working with macOS 28 (fall 2027). Its package is
   backed up under `artifacts/vendor-driver-backup/` (gitignored: keep a copy elsewhere too).
@@ -65,6 +79,16 @@ Start by reading docs/spl-qpdl.md section 3 and `src/qpdl/codec11.c` (the decode
 
 ## Session log
 
+- **2026-09-02 (M4)** — `m2022_codec11_encode` (greedy longest match over the 64 table
+  distances, vendor raw-prefix rule, little-endian header, payload checksum),
+  `m2022_codec11_encode_bound`, `m2022_codec11_choose_table` (3-byte hash of recent positions
+  plus the byte-columns to the left as candidates; the columns were essential: without them
+  the checkerboard band was 5× the vendor's), `m2022_codec11_default_table`. Tests:
+  `test_codec11` (header layout, raw prefix, bounds, table choice), `test_codec11_fuzz`
+  (1 500 round trips, 6 000 damaged payloads), `test_qpdl_fixtures` re-encodes every vendor
+  band (0.764 of the vendor's bytes, worst band 1.00), `test_codec11_pipeline` (our presets
+  through the codec, sizes against the vendor). Survey of the vendor's encoder habits written
+  into docs/spl-qpdl.md 3.3. 14 suites pass.
 - **2026-09-02 (later)** — M2: PAPPL v1.4.12 submodule + `scripts/build-pappl.sh` (arm64 static;
   configure defaults to universal, pinned via CFLAGS/LDFLAGS); `src/app/` with driver data per
   SPEC 6.1 and capture callbacks; `server` command; media table shared with the encoder

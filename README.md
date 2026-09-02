@@ -10,19 +10,21 @@ driver from the bytes up is a good way to learn how printing actually works.
 
 ## Status
 
-**M3 complete.** The printer's language is fully decoded and verified against 42 captured
+**M4 complete.** The printer's language is fully decoded and verified against 42 captured
 vendor jobs; a captured job replayed through our own USB transport prints (v0.1); the Printer
-Application runs and receives Apple Raster jobs from iPhone and Mac (v0.2); and the raster and
+Application runs and receives Apple Raster jobs from iPhone and Mac (v0.2); the raster and
 halftone pipeline exists, measured against the vendor's own output (text: 99.99 % pixel
-agreement). Next: the band codec encoder (M4), the QPDL encoder (M5), then the first native
-print (M6). See [PROGRESS.md](PROGRESS.md).
+agreement); and our encoder for the printer's 0x11 band compression re-encodes every vendor
+band exactly, in 0.76 of the vendor's bytes. Next: the QPDL encoder and `encode` command
+(M5), then the first native print (M6). See [PROGRESS.md](PROGRESS.md).
 
 | Milestone | What it delivers |
 |---|---|
 | M0–M1 ✅ | probe, vendor fixtures, USB transport, `decode` |
 | M2 ✅ | printer visible to iPhone/iPad/Mac; incoming raster captured |
 | M3 ✅ | raster ingest, tone curve, five halftone methods, presets |
-| M4–M5 | band codec encoder, QPDL encoder |
+| M4 ✅ | 0x11 band codec encoder with per-band offset tables, smaller output than the vendor's |
+| M5 | QPDL encoder and `encode` command |
 | M6 | first page printed with no vendor code (v0.3) |
 | M7–M8 | launchd service, installer, reliability soak (v1.0) |
 | M9–M11 | status reporting, print quality program, signed release |

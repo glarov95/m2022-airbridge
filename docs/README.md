@@ -6,7 +6,7 @@ states what was measured, what was decided, and what it teaches.
 | Document | Covers | Status |
 |---|---|---|
 | [architecture.md](architecture.md) | the data path today and in the finished product, module map | current |
-| [spl-qpdl.md](spl-qpdl.md) | the printer's language: PJL envelope, records, 0x11 band codec, paper codes, band-width rule | current, verified on 867 bands |
+| [spl-qpdl.md](spl-qpdl.md) | the printer's language: PJL envelope, records, the 0x11 band codec (decoder and encoder), paper codes, band-width rule | current, verified on 867 bands; encoder measured against the vendor |
 | [usb.md](usb.md) | USB printer class transport, device identity, status, what the printer reports | current |
 | [ipp-airprint.md](ipp-airprint.md) | IPP Everywhere and AirPrint attributes, DNS-SD record, what clients send | current, measured on macOS 26 and iOS 26 |
 | [raster.md](raster.md) | raster ingest, colour conversion, tone curve, scaling, margins | current |

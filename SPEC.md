@@ -339,11 +339,11 @@ Responsibilities (layouts confirmed in section 2.8 and `docs/spl-qpdl.md`):
 The only compression the vendor uses on this printer. Documented in the SpliX SPL2 document (`specs-en/bandes.tex`) and visible in every captured band:
 
 - Payload header: `0x09ABCDEF` (32-bit; the printer autodetects endianness from it), raw-data length (32-bit, at most 128), a table of 64 16-bit offsets, then that many raw bytes copied verbatim.
-- Stream: LZ-style tokens. A match token has bit 7 set in its first byte: length = (b1 & 0x7F) + ((b2 & 0xC0) << 1) + 3, table index = b2 & 0x3F; the match copies from `position − table[index]`. A literal token's first byte is the literal count minus one (at most 64 bytes), followed by the bytes.
+- Stream: LZ-style tokens. A match token has bit 7 set in its first byte: length = (b1 & 0x7F) + ((b2 & 0xC0) << 1) + 3, table index = b2 & 0x3F (0-based); the match copies from `position − table[index]`. A literal token's first byte is the literal count minus one (1..128 bytes; the SpliX text's 64 is not the vendor's limit), followed by the bytes.
 - A 32-bit big-endian checksum of every byte between the band header and the checksum closes the payload; its 4 bytes are included in the band record's length.
-- The vendor's offset table (multiples of 128 for horizontal neighbours, 1 and diagonals for vertical ones) is recorded from the fixtures; whether the printer accepts other tables is an M9 question.
+- Any offset table is accepted (question 12: the vendor changes it per band, and a job with three tables printed). Ours is chosen per band from the band's own statistics, with a fixed default table built from the vendor's usage as the fallback; the raw prefix holds the leading literals, 64..128 bytes, as the vendor's does (`docs/spl-qpdl.md` 3.3, 3.4).
 
-Deliverables: decoder (used by `decode` and by tests to explain every vendor band), encoder with a greedy longest-match search over the table, the column-major transform, the checksum. Tests: every vendor band decodes and verifies; decoded bands assembled into a page match the page content; encode→decode round trips exactly on fixtures and random data; fuzzing of the decoder.
+Deliverables: decoder (used by `decode` and by tests to explain every vendor band), encoder with a greedy longest-match search over the table, the per-band table choice, the column-major transform, the checksum. Tests: every vendor band decodes and verifies; decoded bands assembled into a page match the page content; encode→decode round trips exactly on fixtures and random data; fuzzing of the decoder. Done: decoder in M1, encoder in M4 (2026-09-02); re-encoding all 867 vendor bands gives 0.76 of the vendor's bytes and never a larger band; a 600 dpi page encodes in about 50 ms.
 
 JBIG (0x15) is not needed for this printer and is out of scope unless a hardware experiment shows a benefit.
 
@@ -556,6 +556,8 @@ Per 6.5: decoder first, then encoder, plus the column-major band transform and t
 
 Acceptance: every vendor band in the fixtures decodes and its checksum verifies; decoded bands assembled into a page bitmap match the page content (PBM inspection, and pixel agreement with our own halftone of the same raster up to the expected halftone differences); encode→decode round trip is exact on every fixture band and on random data; fuzz target clean.
 
+**Done 2026-09-02.** Encoder with greedy longest match, the vendor's raw-prefix rule and a per-band offset-table choice (`m2022_codec11_encode`, `m2022_codec11_choose_table`, `m2022_codec11_default_table`). All 867 vendor bands re-encode exactly in 0.76 of the vendor's bytes (default table: 0.91), no band larger than the vendor's; our own halftones round-trip through the codec for every preset; 1 500 random bands and 6 000 damaged payloads leave the decoder clean under the sanitizers. Measured cost of stochastic screens: blue noise 2–2.5×, Floyd–Steinberg 6.8× the vendor's page size (risk 12, question 13). A 600 dpi page encodes in about 50 ms in an optimized build. `docs/spl-qpdl.md` 3.3–3.4.
+
 Teaches: LZ77-family compression, offset tables, literal and match coding, checksums, and why a column-major layout compresses laser bands well.
 
 ### M5 — QPDL encoder and decoder
@@ -733,6 +735,7 @@ Rules:
 | 9 | macOS 28 arrives before v1.0 | schedule | v1.0 target is spring 2027; hold the host on macOS 27 if needed |
 | 10 | 1200 dpi prints badly on this engine | medium | the vendor emits it in Best mode, so the format is known; the M9 hardware test decides |
 | 11 | Scope creep from the learning goal | medium | learning exercises live in `docs/`, not in `src/`; milestones gate features |
+| 12 | Stochastic screens (blue noise, error diffusion) do not compress under 0x11: 2–7× the vendor's bytes per page, up to 740 KB for a photo | medium | measured in M4; M6 sends the Floyd–Steinberg photo page to find the printer's limit; fallbacks are the clustered screen for photos or a hybrid screen (M10) |
 
 ---
 
@@ -750,6 +753,7 @@ Rules:
 10. Toner level: CUPS shows `marker-levels = 48`, so yes; through which channel?
 11. Does the printer honour the page-footer copies field, or must pages be repeated as CUPS does?
 12. Answered 2026-09-02: the vendor changes the offset table per band, and the black-square job with 3 different tables printed; any table works.
+13. Does the printer accept pages far larger than the vendor ever sent? Our Floyd–Steinberg photo page is 740 KB of band payload; the largest captured job is 521 KB (1200 dpi text). M6 sends it.
 
 ---
 
