@@ -1,0 +1,40 @@
+# USB identity of the printer, captured 2026-09-02T14:54:05Z on macOS 26.6.2
+
+## system_profiler SPUSBDataType (printer entry)
+(not found)
+
+## ioreg (IOUSBHostDevice properties)
+        "locationID" = 0
+  |             "bcdDevice" = 256
+  |             "bDeviceClass" = 0
+  |             "bDeviceProtocol" = 0
+  |             "bMaxPacketSize0" = 64
+  |             "Device Speed" = 2
+  |             "idProduct" = 13089
+  |             "idVendor" = 1256
+  |             "kUSBCurrentConfiguration" = 1
+  |             "locationID" = 18027008
+  |             "sessionID" = 21730516865355
+  |             "USB Product Name" = "M2020 Series"
+  |             "USB Serial Number" = "ZF45B8GF3C01YSD"
+  |             "USB Vendor Name" = "Samsung Electronics Co., Ltd."
+
+## lpinfo -l -v (CUPS usb backend view, includes IEEE 1284 device-id)
+        device-id = 
+        location = 
+Device: uri = usb://Samsung/M2020%20Series?serial=ZF45B8GF3C01YSD
+        class = direct
+        info = Samsung M2020 Series
+        make-and-model = Samsung M2020 Series
+        device-id = SERN:ZF45B8GF3C01YSD;MFG:Samsung;CMD:SPL,URF,FWV,PIC,EXT,DCU;MDL:M2020 Series;CLS:PRINTER;CID:SA_SPLV3_BW;MODE:SPL3,R000105;STATUS:MPS;
+        location = 
+Device: uri = smb
+
+## ipptool printer-state now
+        marker-change-time (integer) = 1786564679
+        printer-state (enum) = idle
+        printer-state-reasons (keyword) = none
+        marker-colors (nameWithoutLanguage) = #000000
+        marker-levels (integer) = 48
+        marker-names (nameWithoutLanguage) = Black
+        marker-types (keyword) = ink

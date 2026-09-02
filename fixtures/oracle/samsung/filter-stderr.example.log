@@ -1,0 +1,196 @@
+PAGE: 1 1
+INFO: Printing page 1, 0% complete...
+INFO: Printing page 1, 1% complete...
+INFO: Printing page 1, 3% complete...
+INFO: Printing page 1, 5% complete...
+INFO: Printing page 1, 7% complete...
+INFO: Printing page 1, 9% complete...
+INFO: Printing page 1, 11% complete...
+INFO: Printing page 1, 13% complete...
+INFO: Printing page 1, 15% complete...
+INFO: Printing page 1, 16% complete...
+INFO: Printing page 1, 18% complete...
+INFO: Printing page 1, 20% complete...
+INFO: Printing page 1, 22% complete...
+INFO: Printing page 1, 24% complete...
+INFO: Printing page 1, 26% complete...
+INFO: Printing page 1, 28% complete...
+INFO: Printing page 1, 30% complete...
+INFO: Printing page 1, 32% complete...
+INFO: Printing page 1, 33% complete...
+INFO: Printing page 1, 35% complete...
+INFO: Printing page 1, 37% complete...
+INFO: Printing page 1, 39% complete...
+INFO: Printing page 1, 41% complete...
+INFO: Printing page 1, 43% complete...
+INFO: Printing page 1, 45% complete...
+INFO: Printing page 1, 47% complete...
+INFO: Printing page 1, 48% complete...
+INFO: Printing page 1, 50% complete...
+INFO: Printing page 1, 52% complete...
+INFO: Printing page 1, 54% complete...
+INFO: Printing page 1, 56% complete...
+INFO: Printing page 1, 58% complete...
+INFO: Printing page 1, 60% complete...
+INFO: Printing page 1, 62% complete...
+INFO: Printing page 1, 63% complete...
+INFO: Printing page 1, 65% complete...
+INFO: Printing page 1, 67% complete...
+INFO: Printing page 1, 69% complete...
+INFO: Printing page 1, 71% complete...
+INFO: Printing page 1, 73% complete...
+INFO: Printing page 1, 75% complete...
+INFO: Printing page 1, 77% complete...
+INFO: Printing page 1, 79% complete...
+STATE: -toner-low-warning
+STATE: -toner-low-error
+STATE: -marker-waste-full-warning
+STATE: -marker-waste-full-error
+STATE: -toner-empty-warning
+STATE: -toner-empty-error
+STATE: -input-tray-missing-warning
+STATE: -input-tray-missing-error
+STATE: -media-jam-warning
+STATE: -media-jam-error
+STATE: -media-empty-warning
+STATE: -media-empty-error
+STATE: -opc-near-eol-warning
+STATE: -opc-near-eol-error
+STATE: -cover-open-warning
+STATE: -toner-low-warning
+STATE: -cover-open-error
+STATE: -toner-low-error
+STATE: -opc-life-over-warning
+STATE: -opc-life-over-error
+STATE: -media-low-warning
+STATE: -media-low-error
+STATE: -output-area-full-warning
+STATE: -output-area-full-error
+STATE: -marker-waste-full-warning
+STATE: -com.Samsung.LoadManual-error
+STATE: -marker-waste-full-error
+STATE: -com.Samsung.PaperEmptyMP-error
+STATE: -com.Samsung.PaperEmptyMP-warning
+STATE: -com.Samsung.PaperMismatch-error
+STATE: -com.Samsung.PaperError-error
+STATE: -com.Samsung.TrayError-error
+STATE: -com.Samsung.TonerInvalid-error
+STATE: -com.Samsung.TonerError-error
+STATE: -com.Samsung.ImagingUnitError-error
+STATE: -com.Samsung.ImagingUnitWarning-warning
+STATE: -com.Samsung.TransbeltError-error
+STATE: -com.Samsung.TransbeltWarning-warning
+STATE: -com.Samsung.FinisherError-error
+STATE: -com.Samsung.FuserError-error
+STATE: -com.Samsung.LSUError-error
+STATE: -com.Samsung.SystemError-error
+STATE: -com.Samsung.GeneralErrorOrWarning-error
+STATE: -com.Samsung.TonerFailure-error
+STATE: -com.Samsung.ImagingUnitFailure-error
+STATE: -com.Samsung.MPPaperMismatch-error
+STATE: -com.Samsung.FirstPaperMismatch-error
+STATE: -com.Samsung.OptPaperMismatch-error
+STATE: -com.Samsung.Opt3PaperMismatch-error
+STATE: -com.Samsung.OptPaperMismatchHcf-error
+STATE: -com.Samsung.Opt3PaperMismatchHcf-error
+STATE: -com.Samsung.InvalidTonerKitPwdY-error
+STATE: -com.Samsung.InvalidTonerKitY-error
+STATE: -com.Samsung.NonGenuineTonerY-error
+STATE: -com.Samsung.InvalidTonerKitPwdM-error
+STATE: -com.Samsung.InvalidTonerKitM-error
+STATE: -com.Samsung.NonGenuineTonerM-error
+STATE: -com.Samsung.InvalidTonerKitPwdC-error
+STATE: -com.Samsung.InvalidTonerKitC-error
+STATE: -com.Samsung.NonGenuineTonerC-error
+STATE: -com.Samsung.InvalidTonerKitPwdK-error
+STATE: -com.Samsung.InvalidTonerKitK-error
+STATE: -com.Samsung.NonGenuineTonerK-error
+STATE: -com.Samsung.UsbCableOff-error
+STATE: -toner-empty-warning
+STATE: -com.Samsung.NetworkCableOff-error
+STATE: -com.Samsung.ReplaceTransbelt-error
+STATE: -com.Samsung.ReplaceTransSoon-error
+STATE: -com.Samsung.PowerSave-report
+STATE: -com.Samsung.AcrMode-report
+STATE: -com.Samsung.Warmingup-report
+STATE: -com.Samsung.Processing-report
+STATE: -com.Samsung.General-report
+STATE: -com.Samsung.General-error
+STATE: -com.Samsung.General-warning
+STATE: -toner-empty-error
+STATE: -input-tray-missing-warning
+STATE: -input-tray-missing-error
+STATE: -media-jam-warning
+STATE: -media-jam-error
+STATE: -media-empty-warning
+STATE: -media-empty-error
+STATE: -opc-near-eol-warning
+STATE: -opc-near-eol-error
+STATE: -cover-open-warning
+STATE: -cover-open-error
+STATE: -opc-life-over-warning
+STATE: -opc-life-over-error
+STATE: -media-low-warning
+STATE: -media-low-error
+STATE: -output-area-full-warning
+STATE: -output-area-full-error
+STATE: -com.Samsung.LoadManual-error
+STATE: -com.Samsung.PaperEmptyMP-error
+STATE: -com.Samsung.PaperEmptyMP-warning
+STATE: -com.Samsung.PaperMismatch-error
+STATE: -com.Samsung.PaperError-error
+STATE: -com.Samsung.TrayError-error
+STATE: -com.Samsung.TonerInvalid-error
+STATE: -com.Samsung.TonerError-error
+STATE: -com.Samsung.ImagingUnitError-error
+STATE: -com.Samsung.ImagingUnitWarning-warning
+STATE: -com.Samsung.TransbeltError-error
+STATE: -com.Samsung.TransbeltWarning-warning
+STATE: -com.Samsung.FinisherError-error
+STATE: -com.Samsung.FuserError-error
+STATE: -com.Samsung.LSUError-error
+STATE: -com.Samsung.SystemError-error
+STATE: -com.Samsung.GeneralErrorOrWarning-error
+STATE: -com.Samsung.TonerFailure-error
+STATE: -com.Samsung.ImagingUnitFailure-error
+STATE: -com.Samsung.MPPaperMismatch-error
+STATE: -com.Samsung.FirstPaperMismatch-error
+STATE: -com.Samsung.OptPaperMismatch-error
+STATE: -com.Samsung.Opt3PaperMismatch-error
+STATE: -com.Samsung.OptPaperMismatchHcf-error
+STATE: -com.Samsung.Opt3PaperMismatchHcf-error
+STATE: -com.Samsung.InvalidTonerKitPwdY-error
+STATE: -com.Samsung.InvalidTonerKitY-error
+STATE: -com.Samsung.NonGenuineTonerY-error
+STATE: -com.Samsung.InvalidTonerKitPwdM-error
+STATE: -com.Samsung.InvalidTonerKitM-error
+STATE: -com.Samsung.NonGenuineTonerM-error
+STATE: -com.Samsung.InvalidTonerKitPwdC-error
+STATE: -com.Samsung.InvalidTonerKitC-error
+STATE: -com.Samsung.NonGenuineTonerC-error
+STATE: -com.Samsung.InvalidTonerKitPwdK-error
+STATE: -com.Samsung.InvalidTonerKitK-error
+STATE: -com.Samsung.NonGenuineTonerK-error
+STATE: -com.Samsung.UsbCableOff-error
+STATE: -com.Samsung.NetworkCableOff-error
+STATE: -com.Samsung.ReplaceTransbelt-error
+STATE: -com.Samsung.ReplaceTransSoon-error
+STATE: -com.Samsung.PowerSave-report
+STATE: -com.Samsung.AcrMode-report
+STATE: -com.Samsung.Warmingup-report
+STATE: -com.Samsung.Processing-report
+STATE: -com.Samsung.General-report
+STATE: -com.Samsung.General-error
+STATE: -com.Samsung.General-warning
+INFO: Printing page 1, 80% complete...
+INFO: Printing page 1, 82% complete...
+INFO: Printing page 1, 84% complete...
+INFO: Printing page 1, 86% complete...
+INFO: Printing page 1, 88% complete...
+INFO: Printing page 1, 90% complete...
+INFO: Printing page 1, 92% complete...
+INFO: Printing page 1, 94% complete...
+INFO: Printing page 1, 95% complete...
+INFO: Printing page 1, 97% complete...
+INFO: Printing page 1, 99% complete...
+INFO: Ready to print.

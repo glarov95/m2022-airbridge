@@ -1,0 +1,21 @@
+# build output
+build/
+build-*/
+compile_commands.json
+*.o
+*.a
+*.dSYM/
+
+# local artifacts: probe output, scans, soak logs, vendor driver backup
+artifacts/*
+!artifacts/.gitkeep
+
+# oracle builds (SpliX etc.) are built locally, never committed
+third_party/oracles/*
+!third_party/oracles/.gitkeep
+!third_party/oracles/*.sh
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/

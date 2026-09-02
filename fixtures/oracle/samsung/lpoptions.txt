@@ -1,0 +1,13 @@
+SECManualDuplexOption/Two-Sided Printing (Manual): *None LongEdge ShortEdge
+id_SaveMode/Toner Save: On *Off
+InputSlot/Paper Source: *Auto Manual
+SkipBlankPages/Skip Blank Pages: *False True
+MediaType/Paper Type: *Default Plain Thick Thin Bond Colored Card Label Envelope Preprinted Recycled Cotton Archive
+SECResolution/Quality: *Normal Best
+ColorModel/Color Mode: *Gray
+id_EdgeEnhance/Edge Enhancement: Off *Normal Maximum
+n_SrcXR/n_SrcXR: *600
+n_SrcYR/n_SrcYR: *600
+n_Brightness/Brightness: 0 10 20 30 40 *50 60 70 80 90 100
+n_Contrast/Contrast: 0 10 20 30 40 *50 60 70 80 90 100
+PageSize/Page Size: A4 A5 B5-JIS B5-ISO *Letter Legal Executive US-Folio Oficio Postcard_S EnvC5 EnvDL Env10 EnvMonarch Custom.WIDTHxHEIGHT

@@ -1,0 +1,2 @@
+30c45449332df22c2b564670c5ea3b6a21c2243911a6a9f4b1c151f8a5bc735e  /Library/Printers/Samsung/UPD/Filters/rastertosec
+d4f488f4d605b7e70c46c5dfa66055ac0e28aec8c1263fa28d1d725d06fd6332  /etc/cups/ppd/Samsung_M2020_Series.ppd

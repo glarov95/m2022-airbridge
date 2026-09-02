@@ -1,0 +1,11 @@
+M2022 AirBridge unicode text fixture
+English: The quick brown fox jumps over the lazy dog.
+Bulgarian: Ах, чудна българска земьо, полюшвай цъфтящи жита!
+Greek: Ξεσκεπάζω τὴν ψυχοφθόρα βδελυγμία.
+German: Falsches Üben von Xylophonmusik quält jeden größeren Zwerg.
+French: Voix ambiguë d'un cœur qui, au zéphyr, préfère les jattes de kiwis.
+Polish: Pchnąć w tę łódź jeża lub ośm skrzyń fig.
+Czech: Příliš žluťoučký kůň úpěl ďábelské ódy.
+Turkish: Pijamalı hasta yağız şoföre çabucak güvendi.
+Symbols: € £ ¥ © ® ™ ½ ¾ ± × ÷ → ← ↑ ↓ ∞ ≈ ≠ ≤ ≥ • … — –
+Digits: 0123456789  Box: ┌─┬─┐ │ ├─┼─┤ └─┴─┘
