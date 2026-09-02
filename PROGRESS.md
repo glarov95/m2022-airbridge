@@ -1,7 +1,20 @@
 # Progress
 
-Read this first in every session. It says where we are, what is next, and what to update when
-something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md`.
+The project's state: what works today, what is next, and how it got here. Read this first in
+every session; the design is `SPEC.md`, the working rules `CLAUDE.md`, the front page
+`README.md`.
+
+## What works today
+
+**v0.3, M8 in progress.** The printer's language is fully decoded and verified against 42
+captured vendor jobs; the raster and halftone pipeline is measured against the vendor's
+output (text page: 99.99 % pixel agreement); the 0x11 band encoder produces smaller streams
+than the vendor's on every band; the job encoder's page headers are byte-identical for all 14
+paper sizes; and the Printer Application takes an Apple Raster job from an iPhone or a Mac,
+crops it to the printable area, halftones and encodes it, and writes it to the printer over
+USB. Nothing from the vendor runs anywhere in that path. `sudo m2022-airbridge install` turns
+it into a launchd service under a hidden user, with `doctor`, `status` and `logs` to watch
+it. Next: the reliability soak on the way to v1.0.
 
 ## Where we are
 
@@ -29,8 +42,8 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
    done by hand), then a page a day for a week. Tick the checklist with dates.
 2. Cancel from the phone mid-job (the Floyd–Steinberg photo page takes a few seconds):
    `rendjob` closes the stream; confirm the printer prints the partial page or nothing and the
-   next job is fine. Two jobs queued while one prints: PAPPL answers busy to the second raster
-   job; check what the phone does with that.
+   next job is fine. (A second job from the phone while one was printing went through,
+   2026-09-02.)
 3. A Letter page and a manual-feed job from the phone (media options in the print dialog).
 4. When the week is clean: SPEC section 17 v1.0 line, README status v1.0, tag `v1.0`.
 5. Then M9 (status details, manual duplex, 1200 dpi, toner level over the vendor's USB
@@ -38,20 +51,20 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Milestones
 
-| # | Milestone | Status | Done | Commits |
-|---|---|---|---|---|
-| M0 | Environment probe and vendor capture | done | 2026-09-02 | 6e96237 |
-| M1 | Repository, USB transport, replay, decoder | done, v0.1 | 2026-09-02 | 1b73582, 670be60 |
-| M2 | PAPPL skeleton with capture device | done, v0.2 | 2026-09-02 | a8c6b5b + follow-up |
-| M3 | Raster and halftone pipeline | done | 2026-09-02 | 5e18397 |
-| M4 | Band codec 0x11 encoder | done | 2026-09-02 | f22d645 |
-| M5 | QPDL encoder and `encode`, first native print | done | 2026-09-02 | 74c2e6a |
-| M6 | iPhone and Mac print through the Printer Application (v0.3) | done | 2026-09-02 | 0a92b2d |
-| M7 | Service, installer, doctor | done | 2026-09-02 | b2f9485 |
-| M8 | Reliability soak (v1.0) | in progress | | |
-| M9 | Status, manual duplex, 1200 dpi experiment | todo | | |
-| M10 | Quality program (v1.5) | todo | | |
-| M11 | Release engineering, documentation site | todo | | |
+| # | Milestone | Delivers | Status | Done | Commits |
+|---|---|---|---|---|---|
+| M0 | Environment probe and vendor capture | the Mac and the printer probed, vendor output captured for 42 pages, driver backed up | done | 2026-09-02 | 6e96237 |
+| M1 | Repository, USB transport, replay, decoder | build system, `probe`, `send`, `decode`; a replayed vendor job prints | done, v0.1 | 2026-09-02 | 1b73582, 670be60 |
+| M2 | PAPPL skeleton with capture device | printer visible to iPhone, iPad and Mac; incoming raster captured | done, v0.2 | 2026-09-02 | a8c6b5b + follow-up |
+| M3 | Raster and halftone pipeline | raster ingest, tone curve, five halftone methods, presets, `render` | done | 2026-09-02 | 5e18397 |
+| M4 | Band codec 0x11 encoder | per-band offset tables, smaller output than the vendor's | done | 2026-09-02 | f22d645 |
+| M5 | QPDL encoder and `encode` | job encoder with the vendor's envelope and records; first native page printed | done | 2026-09-02 | 74c2e6a |
+| M6 | The Printer Application prints | iPhone and Mac print through the daemon over our USB device scheme | done, v0.3 | 2026-09-02 | 0a92b2d |
+| M7 | Service, installer, doctor | launchd service under a hidden user, `install`, `uninstall`, `doctor`, `status`, `logs` | done | 2026-09-02 | b2f9485 |
+| M8 | Reliability soak | checklist on real hardware, job limits, throughput measured, `remove-vendor-driver` | in progress, v1.0 | | d20dcef, 864a834 |
+| M9 | Status and options | toner level, cover and jam status, manual duplex, 1200 dpi experiment | todo | | |
+| M10 | Quality program | calibration from scans, comparison scoring against the vendor | todo, v1.5 | | |
+| M11 | Release engineering | signed `.pkg`, Homebrew tap, CHANGELOG, tree-wide format, the documentation as a whole | todo | | |
 
 ## Facts established (details in `docs/`)
 
@@ -82,6 +95,11 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Session log
 
+- **2026-09-02 (docs)** — README rewritten as an open-source front page: features and
+  planned features, compatibility (printer, host, clients), quick start, command table,
+  documentation index, contributing, acknowledgements. The status paragraph and the
+  milestone descriptions moved here; `CLAUDE.md` says so. Hardware, by the user: a second
+  job from the phone while one was printing went through.
 - **2026-09-02 (M8, part 1)** — Limits (20 active jobs, 50 kept, 128 MB images), a "first
   band on the device" log line, `scripts/measure-throughput.sh` (multi-page job through a
   file device: 70 pages/min, 52 MB RSS, 0.05 s to first band), `tests/hardware/soak.sh` (N

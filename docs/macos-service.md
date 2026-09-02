@@ -94,6 +94,7 @@ package receipt. `sudo tar xzf …/backup/vendor-driver.tar.gz -C /` puts the dr
 - [x] `install` again as the upgrade path (2026-09-02; the running service is stopped first)
 - [x] print from an iPhone with no terminal open (2026-09-02)
 - [x] two jobs back to back through the daemon (`tests/hardware/soak.sh`, 2026-09-02)
+- [x] a second job from the phone while one is printing: went through (2026-09-02)
 - [x] 20-page job through the pipeline: 70 pages/min, 52 MB peak RSS, first band after
       0.05 s (`scripts/measure-throughput.sh`, file device, 2026-09-02)
 - [x] printer off: a submitted job waits (PAPPL retries the device every 5 s, the client's

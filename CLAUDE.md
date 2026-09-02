@@ -39,7 +39,9 @@ goal, not a by-product. No interim bridges, no throwaway code (ADR-001).
    reality differed from the plan.
 3. `docs/`: update the doc for the module touched (`docs/README.md` is the index). Milestone-
    level work gets a "What this teaches" note in its doc.
-4. `README.md`: keep Status, Commands and How it works accurate. It must read well to a newcomer.
+4. `README.md`: keep Features, Planned, Compatibility, Commands and How it works accurate; the
+   status paragraph and the roadmap live in `PROGRESS.md`, which the README links to. It must
+   read well to a newcomer.
 5. Report: outcome first, real test output, what is next.
 
 ## Map
