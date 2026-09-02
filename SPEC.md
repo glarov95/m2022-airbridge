@@ -743,7 +743,7 @@ Rules:
 9. Does any 1200 dpi mode print cleanly?
 10. Toner level: CUPS shows `marker-levels = 48`, so yes; through which channel?
 11. Does the printer honour the page-footer copies field, or must pages be repeated as CUPS does?
-12. Is the 0x11 offset table fixed, and does the printer accept a different one?
+12. Answered 2026-09-02: the vendor changes the offset table per band, and the black-square job with 3 different tables printed; any table works.
 
 ---
 
@@ -766,8 +766,8 @@ Work in this order. Stop and report after each, with real command output.
 
 1. **M0 remainder.** Done 2026-09-02, including VID/PID and the device ID.
 2. **M1 scaffold.** Done 2026-09-02 (CMake + Ninja, C17, warnings as errors, CTest, `clang-format`, README, ADRs 0001–0010).
-3. **M1 USB transport.** Done 2026-09-02: `usb/` with libusb (enumerate, match by VID/PID/serial, claim, bulk write/read, device ID, port status, soft reset), pure IEEE 1284 and status helpers with unit tests, `probe [--json]` through libusb and libcups, `send`. Hardware acceptance: `send fixtures/oracle/samsung/black-square-a4.spl` was accepted by the printer (6475 bytes, status ready before and after); visual confirmation of the printed page pending.
-4. **M1 decode groundwork.** `qpdl/decode` in C that walks a captured job, prints records, band geometry and 0x11 payload headers, and decompresses bands to PBM. `scripts/spl-survey.py` and `docs/spl-qpdl.md` are the starting point.
+3. **M1 USB transport.** Done 2026-09-02: `usb/` with libusb (enumerate, match by VID/PID/serial, claim, bulk write/read, device ID, port status, soft reset), pure IEEE 1284 and status helpers with unit tests, `probe [--json]` through libusb and libcups, `send`. Hardware acceptance: `send fixtures/oracle/samsung/black-square-a4.spl` printed the black square (confirmed 2026-09-02). This is **v0.1**.
+4. **M1 decode groundwork.** Done 2026-09-02: `qpdl/` module (records, walker, 0x11 decoder, band layout) and `decode FILE [--pbm PREFIX]`; all 42 captured jobs and 867 bands decode with verified checksums; the black-square geometry and the decoded pages check out visually.
 
 Suggested prompt:
 

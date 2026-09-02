@@ -125,11 +125,11 @@ end     4           checksum, big-endian: sum of all bytes from the band record 
                     (the 0x0C byte) up to but not including the checksum
 ```
 
-Vendor offset table seen in the fixtures (little-endian entries): 0x0080, 0x0100, 0x0180,
+Offset table of the first black-square band (little-endian entries): 0x0080, 0x0100, 0x0180,
 0x0200, 0x0280, 0x0300, 0x0380, 0x0400, 0x0001, 0x0181, 0x01FF, 0x0081, 0x0201, 0x027F, ...
 Multiples of 128 point at the same byte position in previous lines' columns; 1 and the odd
-values point at vertical and diagonal neighbours. Whether the table is identical in every band
-and job is checked by `decode` (M1 task 4).
+values point at vertical and diagonal neighbours. The text page's first band starts its table
+with 0x0001, 0x0002, 0x0301, 0x0380, ... instead: the vendor tunes the table per band.
 
 Token stream:
 
@@ -144,8 +144,19 @@ if (b1 & 0x80) {                       /* match */
 }
 ```
 
-Open detail: the document says literal runs are cut at 64 bytes; whether the vendor ever emits
-b1 in 0x40..0x7F is to be checked by the decoder on every fixture band.
+Established by decoding all 867 vendor bands (`m2022-airbridge decode`, `tests/unit/test_qpdl_fixtures.c`):
+
+- table indices are 0-based (a 1-based reading fails on the first band);
+- the checksum is the sum of the payload bytes only, the 11-byte band header excluded;
+- every band decodes to exactly width/8 × 128 bytes;
+- literal runs use the full range 1..128 (the SpliX document's "64" is not a vendor limit);
+- the raw length is usually 128 or 64 but other values occur;
+- the offset table changes **per band** within a job (9 distinct tables in the 35-band text
+  page, 64 in the 67-band 1200 dpi page), so the printer accepts arbitrary tables. The black
+  square, printed from the captured job, used 3 different tables.
+
+The vendor halftone, seen in the decoded pages (`decode --pbm`), is a clustered-dot ordered
+screen at roughly 45°, the classic laser screen. Text is thresholded, not dithered.
 
 Band data layout before compression: the band is a 128-line × width-px 1-bit image with 1 = white
 (bits inverted relative to PBM), stored column-major by byte: byte k of line 0, byte k of line 1,

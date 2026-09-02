@@ -16,6 +16,7 @@ static int usage(FILE *out)
           "Commands:\n"
           "  probe [--json]        host, USB printers (device id, port status), CUPS queues\n"
           "  send FILE [options]   write a printer-native job to the USB printer\n"
+          "  decode FILE [options] explain a captured SPL/QPDL job; --pbm PREFIX writes pages\n"
           "  version               print the version and exit\n"
           "  help                  show this help\n",
           out);
@@ -42,6 +43,9 @@ int main(int argc, char **argv)
     }
     if (strcmp(cmd, "send") == 0) {
         return cmd_send(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "decode") == 0) {
+        return cmd_decode(argc - 2, argv + 2);
     }
     fprintf(stderr, "m2022-airbridge: unknown command '%s'\n", cmd);
     return usage(stderr);

@@ -16,5 +16,9 @@ add_library(m2022_cups STATIC cups/queues.c)
 target_link_libraries(m2022_cups PUBLIC m2022_common cups)
 target_compile_options(m2022_cups PRIVATE -Wno-deprecated-declarations)
 
-add_executable(m2022-airbridge cli/main.c cli/cmd_probe.c cli/cmd_send.c)
-target_link_libraries(m2022-airbridge PRIVATE m2022_usb m2022_cups)
+# SPL/QPDL records, job walker, 0x11 band codec, band layout. Pure (ADR-005).
+add_library(m2022_qpdl STATIC qpdl/records.c qpdl/walk.c qpdl/codec11.c qpdl/band.c)
+target_link_libraries(m2022_qpdl PUBLIC m2022_common)
+
+add_executable(m2022-airbridge cli/main.c cli/cmd_probe.c cli/cmd_send.c cli/cmd_decode.c)
+target_link_libraries(m2022-airbridge PRIVATE m2022_usb m2022_cups m2022_qpdl)
