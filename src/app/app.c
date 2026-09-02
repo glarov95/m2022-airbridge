@@ -630,6 +630,11 @@ static bool cb_driver(pappl_system_t *system, const char *driver_name, const cha
 
 /* ---- system ---------------------------------------------------------------------------- */
 
+static bool save_state(pappl_system_t *system, void *data)
+{
+    return papplSystemSaveState(system, (const char *)data);
+}
+
 int m2022_app_run(const m2022_app_config_t *cfg)
 {
     static app_t app;
@@ -681,11 +686,23 @@ int m2022_app_run(const m2022_app_config_t *cfg)
     papplSystemAddListeners(system, NULL);
     papplSystemSetPrinterDrivers(system, 1, drivers, NULL, NULL, cb_driver, &app);
 
-    printer = papplPrinterCreate(system, 0, name, DRIVER_NAME, DEVICE_ID, device_uri);
+    /* The state file keeps the printer's ID and the settings made in the web interface across
+     * restarts; a saved printer wins over the command line (delete the file to reset). */
+    if (cfg->state_file != NULL) {
+        papplSystemLoadState(system, cfg->state_file);
+        papplSystemSetSaveCallback(system, save_state, (void *)(uintptr_t)cfg->state_file);
+    }
+    printer = papplSystemFindPrinter(system, "/ipp/print", 0, NULL);
     if (printer == NULL) {
-        fprintf(stderr, "cannot create printer \"%s\" on %s\n", name, device_uri);
-        papplSystemDelete(system);
-        return 2;
+        printer = papplPrinterCreate(system, 0, name, DRIVER_NAME, DEVICE_ID, device_uri);
+        if (printer == NULL) {
+            fprintf(stderr, "cannot create printer \"%s\" on %s\n", name, device_uri);
+            papplSystemDelete(system);
+            return 2;
+        }
+        if (cfg->state_file != NULL) {
+            papplSystemSaveState(system, cfg->state_file);
+        }
     }
     papplSystemSetDefaultPrinterID(system, papplPrinterGetID(printer));
     papplLog(system, PAPPL_LOGLEVEL_INFO, "printer \"%s\" ready on port %d, device %s%s%s", name,

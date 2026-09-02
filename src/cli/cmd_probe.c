@@ -1,6 +1,7 @@
 /*
- * probe [--json]: what this host, its USB printers and its CUPS queues look like.
- * Exit status 0 when at least one USB printer-class device is present, 1 otherwise.
+ * probe [--json] [--quiet]: what this host, its USB printers and its CUPS queues look like.
+ * Exit status 0 when a USB printer-class device is present and could be opened, 1 when there
+ * is none, 2 when one is present but cannot be opened (permissions, another owner).
  */
 #include "cli.h"
 #include "m2022/cups.h"
@@ -162,7 +163,7 @@ static void print_json(const struct utsname *u, const char *osver, const probed_
 
 int cmd_probe(int argc, char **argv)
 {
-    bool json = false;
+    bool json = false, quiet = false;
     struct utsname u;
     char osver[64];
     m2022_usb_info_t infos[MAX_DEVICES];
@@ -174,6 +175,8 @@ int cmd_probe(int argc, char **argv)
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "--json") == 0) {
             json = true;
+        } else if (strcmp(argv[i], "--quiet") == 0) {
+            quiet = true;
         } else {
             fprintf(stderr, "probe: unknown option '%s'\n", argv[i]);
             return 2;
@@ -202,8 +205,18 @@ int cmd_probe(int argc, char **argv)
     }
     if (json) {
         print_json(&u, osver, printers, np, queues, nq);
-    } else {
+    } else if (!quiet) {
         print_text(&u, osver, printers, np, queues, nq);
     }
-    return np > 0 ? 0 : 1;
+    /* 0: a printer is present and could be opened; 1: none; 2: present but not openable
+     * (the installer runs this as the service user to prove USB access) */
+    if (np == 0) {
+        return 1;
+    }
+    for (size_t i = 0; i < np; i++) {
+        if (printers[i].open_error == 0) {
+            return 0;
+        }
+    }
+    return 2;
 }

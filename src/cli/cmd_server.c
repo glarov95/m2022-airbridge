@@ -30,6 +30,8 @@ int cmd_server(int argc, char **argv)
             cfg.spool_dir = argv[++i];
         } else if (strcmp(argv[i], "--log") == 0 && i + 1 < argc) {
             cfg.log_file = argv[++i];
+        } else if (strcmp(argv[i], "--state") == 0 && i + 1 < argc) {
+            cfg.state_file = argv[++i];
         } else if (strcmp(argv[i], "--debug") == 0) {
             cfg.debug = true;
         } else if (strcmp(argv[i], "--no-tls") == 0) {
@@ -38,7 +40,7 @@ int cmd_server(int argc, char **argv)
             fprintf(stderr, "server: unknown option '%s'\n", argv[i]);
             fprintf(stderr, "Usage: m2022-airbridge server [--port N] [--name NAME] "
                             "[--capture DIR] [--device URI] [--spool DIR] [--log FILE] "
-                            "[--debug] [--no-tls]\n"
+                            "[--state FILE] [--debug] [--no-tls]\n"
                             "  --device: m2022usb://04e8:3321[?serial=S] (default, the USB "
                             "printer) or file:///PATH (write the job to a file)\n");
             return 2;

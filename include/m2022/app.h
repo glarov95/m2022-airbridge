@@ -14,6 +14,7 @@ typedef struct {
     const char *capture_dir; /* NULL = do not capture jobs */
     const char *device_uri;  /* NULL = file device under capture_dir or /tmp */
     const char *log_file;    /* NULL = stderr */
+    const char *state_file;  /* NULL = nothing persists across restarts */
     bool debug;              /* verbose PAPPL logging */
     bool no_tls;             /* disable TLS (diagnostics only) */
 } m2022_app_config_t;

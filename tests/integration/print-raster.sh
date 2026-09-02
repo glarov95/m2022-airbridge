@@ -17,7 +17,7 @@ gunzip -c "$FIXTURES/black-square-a4.ras.gz" > "$WORK/black-square-a4.pwg"
 "$BIN" server --port "$PORT" --device "file://$WORK/device.out" --spool "$WORK/spool" \
     --log "$WORK/server.log" --no-tls > "$WORK/server.out" 2>&1 &
 PID=$!
-trap 'kill $PID 2>/dev/null; wait $PID 2>/dev/null' EXIT
+trap 'kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' EXIT
 
 i=0
 until ipptool -q "ipp://localhost:$PORT/ipp/print" "$IPPTOOL_DIR/get-printer-attributes.test" \

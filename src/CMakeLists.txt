@@ -53,8 +53,8 @@ target_link_libraries(m2022_halftone PUBLIC m2022_raster)
 add_library(m2022_usb STATIC usb/usb.c usb/ieee1284.c usb/status.c)
 target_link_libraries(m2022_usb PUBLIC m2022_common PkgConfig::LIBUSB)
 
-# Read-only view of local CUPS queues through the system libcups (macOS SDK).
-add_library(m2022_cups STATIC cups/queues.c)
+# Read-only view of local CUPS queues and one IPP request through the system libcups (macOS SDK).
+add_library(m2022_cups STATIC cups/queues.c cups/ipp.c)
 target_link_libraries(m2022_cups PUBLIC m2022_common cups)
 target_compile_options(m2022_cups PRIVATE -Wno-deprecated-declarations)
 
@@ -72,5 +72,9 @@ target_link_libraries(m2022_media PUBLIC m2022_common m)
 add_library(m2022_app STATIC app/app.c app/usbdev.c)
 target_link_libraries(m2022_app PUBLIC m2022_common m2022_media m2022_qpdl m2022_halftone m2022_usb pappl::pappl)
 
-add_executable(m2022-airbridge cli/main.c cli/cmd_probe.c cli/cmd_send.c cli/cmd_decode.c cli/cmd_server.c cli/cmd_render.c cli/cmd_encode.c cli/pipeline.c)
-target_link_libraries(m2022-airbridge PRIVATE m2022_usb m2022_cups m2022_qpdl m2022_app m2022_halftone)
+# macOS service adapter: launchd job, hidden service user, install/uninstall plans, DNS-SD.
+add_library(m2022_service STATIC service/service.c service/dnssd.c)
+target_link_libraries(m2022_service PUBLIC m2022_common m2022_usb m2022_cups)
+
+add_executable(m2022-airbridge cli/main.c cli/cmd_probe.c cli/cmd_send.c cli/cmd_decode.c cli/cmd_server.c cli/cmd_render.c cli/cmd_encode.c cli/pipeline.c cli/cmd_service.c cli/cmd_doctor.c)
+target_link_libraries(m2022-airbridge PRIVATE m2022_usb m2022_cups m2022_qpdl m2022_app m2022_halftone m2022_service)

@@ -360,6 +360,8 @@ JBIG (0x15) is not needed for this printer and is out of scope unless a hardware
 - Sleep/wake: mDNSResponder re-registers automatically and integrates with the Bonjour Sleep Proxy, so an Apple TV or HomePod on the LAN keeps the printer visible and wakes the Mac for a job. The service itself must survive wake without a restart; M8 tests it.
 - Logging: PAPPL's log to a file plus an `os_log` adapter so `log stream --predicate 'subsystem == "com.m2022airbridge"'` works.
 
+As built in M7 (ADR-011, `docs/macos-service.md`): LaunchDaemon `com.m2022airbridge.daemon`, user `_m2022airbridge` (first free UID in 300–499), state in `/Library/Application Support/M2022AirBridge/state.conf` (PAPPL's state file), spool `/var/spool/m2022-airbridge`, log `/Library/Logs/M2022AirBridge/m2022-airbridge.log` rotated by newsyslog. The `os_log` adapter and the sleep/wake soak are M8.
+
 ### 6.8 Installer and uninstaller
 
 Installer steps, each idempotent and each printing what it did:
@@ -372,6 +374,8 @@ Installer steps, each idempotent and each printing what it did:
 6. The Mac's own print dialog discovers the printer via Bonjour. The installer also creates an explicit driverless queue so scripts and `lp` work: `lpadmin -p M2022 -E -v ipp://localhost:8000/ipp/print -m everywhere`.
 
 Uninstall reverses every step and restores the Samsung queue from the backup. Distributed as a signed and notarized `.pkg` (M11) with a Homebrew tap as a second channel.
+
+As built in M7: `m2022-airbridge install [--dry-run] [--keep-vendor-queue] [--test-page]` and `uninstall [--dry-run] [--purge]` build a plan from an inspection of the Mac (user, launchd state, queues, USB printer), print every step and run it; the plans are unit-tested (`tests/unit/test_service.c`). Step 4 of the list above runs `probe --quiet` as the service user before the vendor queue is touched. The driverless queue is created only when no queue points at the printer.
 
 ### 6.9 CLI
 
@@ -389,6 +393,8 @@ m2022-airbridge testpage
 ```
 
 `decode` is as important as `encode`: it is how captured vendor jobs are studied and how regressions are explained.
+
+As built (M7): `capture` is `server --capture DIR`; `testpage` is `install --test-page`; `status` and `logs` exist as listed; `doctor` checks binary, user, launchd job, USB printer, Bonjour, IPP, CUPS queues and the log, with `--no-service` for a server started by hand.
 
 ### 6.10 Configuration
 
@@ -579,6 +585,8 @@ Acceptance: blank page, black square, lines, text, and the test sheet print corr
 Per 6.7–6.9. Samsung queue removed and backed up; LaunchDaemon; dedicated user; `doctor`; uninstall with rollback.
 
 Acceptance: fresh install on this Mac from the `.pkg`; printer visible after reboot without any manual step; uninstall restores the vendor queue.
+
+**Done 2026-09-02** (as subcommands; the `.pkg` wrapper is M11, the reboot check opens M8). `install` creates the hidden user, directories, binary, launchd job and newsyslog entry, proves USB access as the service user, backs up and removes the Samsung queue, adds a driverless queue when none exists; `uninstall [--purge]` reverses it and restores the queue; `doctor`, `status`, `logs`, `start|stop|restart`. Plans are data, printed before they run, unit-tested. Installed on this Mac: `doctor` green, upgrade by re-running `install` exercised. ADR-011, `docs/macos-service.md`.
 
 Teaches: launchd, macOS users and permissions, package building, Unified Logging.
 

@@ -20,6 +20,12 @@ static int usage(FILE *out)
           "  server [options]      run the Printer Application in the foreground\n"
           "  render IN [options]   halftone a PGM or CUPS raster into a PBM (--preset, --method)\n"
           "  encode IN [options]   build a complete printer job (.spl) from a PGM, PBM or CUPS raster\n"
+          "  install [--dry-run]   install the launchd service on this Mac (sudo)\n"
+          "  uninstall [--purge]   remove it (sudo)\n"
+          "  start|stop|restart    control the service (sudo)\n"
+          "  status                service, printer and queue state\n"
+          "  logs [-n N] [-f]      show the service log\n"
+          "  doctor                check everything a working printer needs\n"
           "  version               print the version and exit\n"
           "  help                  show this help\n",
           out);
@@ -58,6 +64,24 @@ int main(int argc, char **argv)
     }
     if (strcmp(cmd, "encode") == 0) {
         return cmd_encode(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "install") == 0) {
+        return cmd_install(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "uninstall") == 0) {
+        return cmd_uninstall(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "start") == 0 || strcmp(cmd, "stop") == 0 || strcmp(cmd, "restart") == 0) {
+        return cmd_service(cmd, argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "status") == 0) {
+        return cmd_status(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "logs") == 0) {
+        return cmd_logs(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "doctor") == 0) {
+        return cmd_doctor(argc - 2, argv + 2);
     }
     fprintf(stderr, "m2022-airbridge: unknown command '%s'\n", cmd);
     return usage(stderr);

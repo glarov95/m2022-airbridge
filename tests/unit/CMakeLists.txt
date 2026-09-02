@@ -34,3 +34,4 @@ m2022_unit_test(test_qpdl_encode test_qpdl_encode.c LINK m2022_qpdl m2022_media 
 target_compile_definitions(test_qpdl_encode PRIVATE M2022_FIXTURE_DIR="${PROJECT_SOURCE_DIR}/fixtures/oracle/samsung")
 m2022_unit_test(test_jobmap test_jobmap.c LINK m2022_media m2022_raster)
 target_compile_definitions(test_jobmap PRIVATE M2022_FIXTURE_DIR="${PROJECT_SOURCE_DIR}/fixtures/oracle/samsung")
+m2022_unit_test(test_service test_service.c LINK m2022_service)

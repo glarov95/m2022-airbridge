@@ -11,9 +11,9 @@ states what was measured, what was decided, and what it teaches.
 | [ipp-airprint.md](ipp-airprint.md) | IPP Everywhere and AirPrint attributes, DNS-SD record, what clients send | current, measured on macOS 26 and iOS 26 |
 | [raster.md](raster.md) | raster ingest, colour conversion, tone curve, scaling, margins | current |
 | [halftone.md](halftone.md) | threshold, ordered, clustered-dot, error diffusion, blue noise; presets; measured against the vendor | current |
-| [macos-service.md](macos-service.md) | launchd, dedicated user, installer, uninstall, logging | planned, M7 |
-| [debugging.md](debugging.md) | tools: probe, decode, capture, survey; how to read a failure | planned, M7 |
-| [adr/](adr/) | decision records 0001–0010 | current |
+| [macos-service.md](macos-service.md) | launchd job, hidden service user, install and uninstall plans, day-to-day commands, checklist | current |
+| [debugging.md](debugging.md) | every tool and what it shows; reading the job log; usual suspects | current |
+| [adr/](adr/) | decision records 0001–0011 | current |
 | [archive/](archive/) | the original v1 specification | reference |
 
 Reading list per topic: `SPEC.md` section 10.

@@ -10,14 +10,15 @@ driver from the bytes up is a good way to learn how printing actually works.
 
 ## Status
 
-**M6 complete, v0.3: the iPhone and the Mac print.** The printer's language is fully decoded and
+**M7 complete: installed as a service.** The printer's language is fully decoded and
 verified against 42 captured vendor jobs; our raster and halftone pipeline is measured against
 the vendor's output (text: 99.99 % pixel agreement); our 0x11 band encoder produces smaller
 streams than the vendor's on every band; our job encoder's page headers are byte-identical for
 all 14 paper sizes; and the Printer Application now takes an Apple Raster job from an iPhone,
 crops it to the printable area, halftones and encodes it, and writes it to the printer over
-USB. Nothing from the vendor runs anywhere in that path. Next: M7 makes it a service that
-starts with the Mac. See [PROGRESS.md](PROGRESS.md).
+USB. Nothing from the vendor runs anywhere in that path. `sudo m2022-airbridge install`
+turns it into a launchd service under a hidden user, with `doctor`, `status` and `logs` to
+watch it. Next: M8, a reliability soak on the way to v1.0. See [PROGRESS.md](PROGRESS.md).
 
 | Milestone | What it delivers |
 |---|---|
@@ -27,7 +28,8 @@ starts with the Mac. See [PROGRESS.md](PROGRESS.md).
 | M4 ✅ | 0x11 band codec encoder with per-band offset tables, smaller output than the vendor's |
 | M5 ✅ | job encoder and `encode` command; first native page printed |
 | M6 ✅ | iPhone and Mac print through the Printer Application (v0.3) |
-| M7–M8 | launchd service, installer, reliability soak (v1.0) |
+| M7 ✅ | launchd service, installer, `doctor` |
+| M8 | reliability soak (v1.0) |
 | M9–M11 | status reporting, print quality program, signed release |
 
 ## How it works
@@ -58,6 +60,18 @@ ctest --test-dir build --output-on-failure -LE hardware
 
 Hardware tests need the printer switched on and print a page: `ctest --test-dir build -L hardware`.
 
+## Install on your Mac
+
+```sh
+sudo ./build/src/m2022-airbridge install     # prints every step; --dry-run only shows them
+./build/src/m2022-airbridge doctor           # one line per check
+```
+
+`install` creates a hidden service user, installs the binary to `/usr/local/bin`, backs up and
+removes the old Samsung queue (one USB owner), writes a launchd job that starts at boot and
+survives crashes, and adds a driverless printer queue to the Mac. `sudo m2022-airbridge
+uninstall` reverses it and restores the Samsung queue. Details: [docs/macos-service.md](docs/macos-service.md).
+
 ## Commands so far
 
 ```sh
@@ -70,6 +84,8 @@ Hardware tests need the printer switched on and print a page: `ctest --test-dir 
 ./build/src/m2022-airbridge server                     # run the Printer Application on the USB printer (port 8000)
 ./build/src/m2022-airbridge server --device file:///tmp/job.spl   # dry run: the job goes to a file
 ./build/src/m2022-airbridge render IN.pgm --preset photo --out page.pbm   # halftone a page
+m2022-airbridge status | doctor | logs -f        # the installed service
+sudo m2022-airbridge start | stop | restart | uninstall
 ```
 
 ## Fixtures

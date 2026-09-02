@@ -5,43 +5,40 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Where we are
 
-- **Milestone:** M6 complete, **v0.3**: the iPhone and the Mac print through the Printer
-  Application (2026-09-02), over our own IPP front end, raster pipeline, halftone, band
-  codec, job encoder and USB transport. The Mac printer was added through System Settings
-  as an AirPrint printer ("Samsung M2022"). Next: M7, the launchd service, installer and
-  doctor, so it runs without a terminal.
+- **Milestone:** M7 complete. The Printer Application is installed on this Mac as a launchd
+  daemon under the hidden user `_m2022airbridge`, started by `sudo m2022-airbridge install`,
+  which also backed up and removed the Samsung queue. `doctor` is green; the upgrade path
+  (`install` again) was exercised. Next: M8, the reliability soak, and the two loose ends
+  from M7: the reboot check and Unified Logging.
 - **Last update:** 2026-09-02.
 - **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD). The vendor CUPS
-  queue `Samsung_M2020_Series` is still installed and idle; M7 removes it.
-- **Running it today:** `./build/src/m2022-airbridge server --spool build/run/spool --log
-  build/run/server.log` (the USB printer is the default device); stop with
-  `pkill -f 'm2022-airbridge server'`.
+  queue is gone (backup in `/Library/Application Support/M2022AirBridge/backup`); the vendor
+  driver package is still installed and can stay until a `.pkg` exists (M11).
+- **Running it today:** it runs by itself. `m2022-airbridge status`, `doctor`, `logs -f`;
+  `sudo m2022-airbridge restart`. A dev server on port 8000 conflicts with the daemon: use
+  `--port 8001` or `sudo m2022-airbridge stop` first.
 
 ## Next up
 
-**M7 — Service, installer, doctor** (SPEC.md 6.7, 6.8, 6.9; docs/architecture.md; ADR-006).
+**M8 — Reliability soak (v1.0)** (SPEC.md M8, 7.4, 6.11; docs/macos-service.md checklist).
 
-1. `service/` adapter: a launchd LaunchAgent (or LaunchDaemon with a dedicated user; decide
-   in an ADR: the LaunchAgent is simpler and libusb works unprivileged, ADR-009) that runs
-   `m2022-airbridge server` at login/boot with `--spool` and `--log` under
-   `~/Library/Application Support/M2022 AirBridge/` and logs under `~/Library/Logs/`; restart
-   on crash (KeepAlive); state file for PAPPL (`papplSystemSetStateFile`?) so the printer
-   keeps its ID and settings across restarts.
-2. `install` / `uninstall` commands (or `scripts/install.sh`): copy the binary to
-   `/usr/local/bin` or `~/Library/...`, write the plist, `launchctl bootstrap`, verify with
-   `probe`; uninstall reverses it. Removing the vendor CUPS queue (`lpadmin -x
-   Samsung_M2020_Series`) and offering to remove the vendor driver package are separate,
-   explicit steps that ask first (ADR-006; keep `artifacts/vendor-driver-backup/`).
-3. `doctor` command: checks the binary, the plist, the running service (launchctl print),
-   the USB printer (probe), the DNS-SD advertisement (`dns-sd -B _ipp._tcp,_universal`),
-   the IPP endpoint (Get-Printer-Attributes on localhost), and prints one line per check
-   with a fix hint.
-4. Unified Logging or the PAPPL log file: decide; at least rotate the log.
-5. Tests: unit tests for the plist generation and doctor checks that are pure; a manual
-   checklist for install/uninstall in docs/macos-service.md (planned doc, index already
-   lists it). Hardware: after install, print from the iPhone with no terminal open, then
-   reboot and print again.
-6. Open from M6: the state file so the printer ID stays stable across restarts.
+1. Reboot the Mac: the printer must be visible and print from the iPhone with nothing done
+   by hand (M7's acceptance line that is still open). Then sleep/wake, printer off and on
+   during idle and during a job, USB unplug/replug: `status` and `doctor` must tell the
+   truth and printing must resume without a restart. Record each in the checklist.
+2. Job-level robustness: cancel from the phone mid-job (rendjob closes the stream; check the
+   printer recovers), two jobs queued, a 20-page document, a Letter page (the geometry with
+   asymmetric margins on real paper), each media type option, manual feed. Photo, text, draft
+   and high quality from the phone's dialog.
+3. Resource limits (SPEC 6.11): job size and queue depth via PAPPL's max settings; peak RSS
+   during a 50-page job (`ps`); time to first byte on USB (log timestamps): compare with the
+   targets in SPEC 7.4.
+4. Unified Logging: an `os_log` sink for PAPPL's log (PAPPL supports `syslog`, which lands in
+   `log show`; decide whether that is enough) so `log stream --predicate 'process ==
+   "m2022-airbridge"'` works; keep the file log.
+5. Hardware test scripts for the soak (label `hardware`), a `docs/macos-service.md` checklist
+   filled in with dates, SPEC section 17's v1.0 line, README status v1.0 when the week of
+   daily use is done.
 
 ## Milestones
 
@@ -53,9 +50,9 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 | M3 | Raster and halftone pipeline | done | 2026-09-02 | 5e18397 |
 | M4 | Band codec 0x11 encoder | done | 2026-09-02 | f22d645 |
 | M5 | QPDL encoder and `encode`, first native print | done | 2026-09-02 | 74c2e6a |
-| M6 | iPhone prints through the Printer Application (v0.3) | done | 2026-09-02 | (this commit) |
-| M7 | Service, installer, doctor | next | | |
-| M8 | Reliability soak (v1.0) | todo | | |
+| M6 | iPhone and Mac print through the Printer Application (v0.3) | done | 2026-09-02 | 0a92b2d |
+| M7 | Service, installer, doctor | done | 2026-09-02 | (this commit) |
+| M8 | Reliability soak (v1.0) | next | | |
 | M9 | Status, manual duplex, 1200 dpi experiment | todo | | |
 | M10 | Quality program (v1.5) | todo | | |
 | M11 | Release engineering, documentation site | todo | | |
@@ -89,6 +86,20 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Session log
 
+- **2026-09-02 (M7)** — `src/service/`: paths, launchd plist, newsyslog entry, launchctl
+  parsing, UID choice, install/uninstall plans built from an inspection of the Mac and
+  executed step by step (`--dry-run` prints them), DNS-SD browse; `src/cups/ipp.c`: one
+  Get-Printer-Attributes; commands `install`, `uninstall`, `start`, `stop`, `restart`,
+  `status`, `logs`, `doctor`; `server --state` (PAPPL state file); `probe --quiet` with exit
+  codes for the installer's USB check. Tests: `test_service` (plans for fresh Mac, upgrade,
+  keep-vendor, nothing installed, purge), `it_doctor` (doctor against a hand-started server,
+  with and without it). Real install on this Mac: user created (uid 309), vendor queue backed
+  up and removed, daemon up, `doctor` green; a page from the iPhone printed with nothing
+  running by hand. Learned: overwriting a running binary in place
+  kills it (code signature), so upgrades stop the service first and the copy is atomic; the
+  daemon's brief status polls can collide with a USB check, so the check retries. ADR-011,
+  docs/macos-service.md, docs/debugging.md. clang-format installed and applied to the new
+  files. 19 suites pass.
 - **2026-09-02 (M6)** — `src/app/app.c`: the real raster callbacks (gray → crop to the
   imageable area → tone → halftone → job encoder → device, one line at a time; copies in the
   page records, which the printer honours: three sheets for copies 3; status callback from
@@ -157,3 +168,6 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 - Recapturing vendor fixtures needs the Intel vendor filter under Rosetta; do not delete the
   vendor driver before M7, and never regenerate the oracle files casually.
 - `scripts/spl-survey.py` and `m2022-airbridge decode` are the tools for studying jobs.
+- `clang-format` (Homebrew, 2026-09-02) formats new files with the repo's `.clang-format`; the
+  files written before M7 were formatted by hand and a tree-wide `clang-format -i` is an M11
+  chore (do it in its own commit).
