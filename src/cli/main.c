@@ -2,8 +2,8 @@
  * m2022-airbridge command line entry point.
  *
  * Subcommands are added milestone by milestone (see SPEC.md section 6.9).
- * M1 scaffold: version, help.
  */
+#include "cli.h"
 #include "m2022/version.h"
 
 #include <stdio.h>
@@ -14,25 +14,35 @@ static int usage(FILE *out)
     fputs("Usage: m2022-airbridge <command> [options]\n"
           "\n"
           "Commands:\n"
-          "  version   print the version and exit\n"
-          "  help      show this help\n",
+          "  probe [--json]        host, USB printers (device id, port status), CUPS queues\n"
+          "  send FILE [options]   write a printer-native job to the USB printer\n"
+          "  version               print the version and exit\n"
+          "  help                  show this help\n",
           out);
     return out == stdout ? 0 : 2;
 }
 
 int main(int argc, char **argv)
 {
+    const char *cmd;
+
     if (argc < 2) {
         return usage(stderr);
     }
-    if (strcmp(argv[1], "version") == 0 || strcmp(argv[1], "--version") == 0) {
+    cmd = argv[1];
+    if (strcmp(cmd, "version") == 0 || strcmp(cmd, "--version") == 0) {
         printf("m2022-airbridge %s\n", m2022_version_string());
         return 0;
     }
-    if (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0 ||
-        strcmp(argv[1], "-h") == 0) {
+    if (strcmp(cmd, "help") == 0 || strcmp(cmd, "--help") == 0 || strcmp(cmd, "-h") == 0) {
         return usage(stdout);
     }
-    fprintf(stderr, "m2022-airbridge: unknown command '%s'\n", argv[1]);
+    if (strcmp(cmd, "probe") == 0) {
+        return cmd_probe(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "send") == 0) {
+        return cmd_send(argc - 2, argv + 2);
+    }
+    fprintf(stderr, "m2022-airbridge: unknown command '%s'\n", cmd);
     return usage(stderr);
 }

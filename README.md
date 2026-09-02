@@ -8,7 +8,9 @@ The full design is in [SPEC.md](SPEC.md). Decisions are recorded in [docs/adr](d
 
 ## Status
 
-M0 (environment probe) done. M1 (repository, USB transport, replay) in progress.
+M0 (environment probe, vendor capture) done. M1: scaffold and USB transport done; a captured vendor
+job replays to the printer through our transport. Next: `qpdl/decode` (M1 task 4), then the PAPPL
+skeleton (M2).
 
 ## Prerequisites (macOS)
 
@@ -27,6 +29,15 @@ ctest --test-dir build --output-on-failure -LE hardware
 ```
 
 Hardware tests (require the printer): `ctest --test-dir build -L hardware`.
+
+## Commands so far
+
+```sh
+./build/src/m2022-airbridge probe            # host, USB printers (device id, status), CUPS queues
+./build/src/m2022-airbridge probe --json
+./build/src/m2022-airbridge send JOB.spl     # write a printer-native job over USB
+./build/src/m2022-airbridge send --dry-run JOB.spl
+```
 
 ## Fixtures
 

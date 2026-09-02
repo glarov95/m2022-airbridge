@@ -358,7 +358,7 @@ JBIG (0x15) is not needed for this printer and is out of scope unless a hardware
 
 ### 6.7 Service and lifecycle (macOS)
 
-- LaunchDaemon `com.m2022airbridge.daemon`, `KeepAlive`, running as a dedicated hidden user `_m2022airbridge` created by the installer (libusb access on macOS does not need root when no kernel driver claims the device; verified in M1, with root as the documented fallback).
+- LaunchDaemon `com.m2022airbridge.daemon`, `KeepAlive`, running as a dedicated hidden user `_m2022airbridge` created by the installer. Verified in M1: libusb opens and claims the printer as a normal user on macOS 26; no kernel driver holds it.
 - Spool and state under `/var/spool/m2022-airbridge` and `/Library/Application Support/M2022AirBridge`.
 - Port 8000 (PAPPL default) so no privileged port is needed. DNS-SD SRV records carry the port; clients do not care.
 - Sleep/wake: mDNSResponder re-registers automatically and integrates with the Bonjour Sleep Proxy, so an Apple TV or HomePod on the LAN keeps the printer visible and wakes the Mac for a job. The service itself must survive wake without a restart; M8 tests it.
@@ -735,10 +735,10 @@ Rules:
 1. Answered 2026-09-02: VID 0x04E8, PID 0x3321; device ID in 2.2.
 2. Answered 2026-09-02: no JBIG; 0x11 in every band (2.8).
 3. Answered 2026-09-02: ceil(raster width / 256) × 256 (2.8).
-4. Does `PacketSize 512` reflect USB packetisation the printer needs, or a driver artefact? Nothing in the byte stream is 512-aligned.
+4. Does `PacketSize 512` reflect USB packetisation the printer needs, or a driver artefact? Nothing in the byte stream is 512-aligned; the bulk OUT endpoint's wMaxPacketSize is 512, which is probably what SpliX means.
 5. Which of the observed PJL `SET` lines (`XIGNOREFF`, `RESOLUTION`, `BITSPERPIXEL`, `PAPERTYPE`, `DUPLEX`, `BINDING`) the printer requires versus ignores.
 6. Which format and resolution iOS 26, iPadOS 26, and macOS 26 send when we advertise `RS300-600`, `W8`, `SRGB24`.
-7. Can libusb claim the interface as an unprivileged user on macOS 26?
+7. Answered 2026-09-02: yes. `probe` and `send` claim interface 0 as a normal user (ADR-009 verified).
 8. Does the printer answer PJL `INFO STATUS` / `USTATUS` on bulk IN?
 9. Does any 1200 dpi mode print cleanly?
 10. Toner level: CUPS shows `marker-levels = 48`, so yes; through which channel?
@@ -766,7 +766,7 @@ Work in this order. Stop and report after each, with real command output.
 
 1. **M0 remainder.** Done 2026-09-02, including VID/PID and the device ID.
 2. **M1 scaffold.** Done 2026-09-02 (CMake + Ninja, C17, warnings as errors, CTest, `clang-format`, README, ADRs 0001–0010).
-3. **M1 USB transport.** `usb/` with libusb; `probe --json`; `send`. Hardware acceptance: replay a captured job and photograph the page into `artifacts/`.
+3. **M1 USB transport.** Done 2026-09-02: `usb/` with libusb (enumerate, match by VID/PID/serial, claim, bulk write/read, device ID, port status, soft reset), pure IEEE 1284 and status helpers with unit tests, `probe [--json]` through libusb and libcups, `send`. Hardware acceptance: `send fixtures/oracle/samsung/black-square-a4.spl` was accepted by the printer (6475 bytes, status ready before and after); visual confirmation of the printed page pending.
 4. **M1 decode groundwork.** `qpdl/decode` in C that walks a captured job, prints records, band geometry and 0x11 payload headers, and decompresses bands to PBM. `scripts/spl-survey.py` and `docs/spl-qpdl.md` are the starting point.
 
 Suggested prompt:
