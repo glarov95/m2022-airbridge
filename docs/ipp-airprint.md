@@ -36,7 +36,11 @@ dns-sd -L "Samsung M2022" _ipp._tcp local.   # the TXT record
 |---|---|---|---|
 | macOS 26 print path (CUPS `-m everywhere` queue, same as the print dialog) | `image/urf` (Apple Raster) | sGray 8-bit, 4960×7015 px at 600 dpi for A4 | With `RS300-600` advertised it rendered at **300 dpi for normal quality** and 600 dpi only for high; hence we advertise `RS600` only |
 | Any client, PNG/JPEG | `image/png`, `image/jpeg` | PAPPL rasterises at 600 dpi sGray | scaled to fit the page |
-| iOS / iPadOS | | | to be measured (M2 acceptance) |
+| iOS 26 (iPhone, Share → Print) | `image/urf` | sGray 8-bit, 4960×7015 px at 600 dpi for A4 | connects over IPv6 link-local and IPv4, upgrades the connection to TLS (`TLS=1.2` in TXT), then Print-Job/Send-Document with gzip; job completes in under a second |
+
+Both Apple clients open several connections (Get-Printer-Attributes, then the job, then
+Get-Job-Attributes polling until completion). With the capture device the job completes at once,
+so the phone shows nothing but a finished job; that is expected until M6 wires the USB device.
 
 Apple Raster jobs are streamed by PAPPL straight from the connection to our raster callbacks;
 there is no spool file. The decoded page is what we capture (`server --capture DIR` writes

@@ -10,16 +10,16 @@ driver from the bytes up is a good way to learn how printing actually works.
 
 ## Status
 
-**M2 in progress.** The printer's language is fully decoded and verified against 42 captured
+**M2 complete, v0.2.** The printer's language is fully decoded and verified against 42 captured
 vendor jobs; a captured job replayed through our own USB transport prints (v0.1); and the
-Printer Application now runs: it is discoverable over Bonjour, passes IPP Everywhere attribute
-checks, and receives Apple Raster jobs from macOS into a capture device. Next: iPhone test,
-then the raster and halftone pipeline (M3). See [PROGRESS.md](PROGRESS.md).
+Printer Application runs: iPhone and Mac discover it over Bonjour, IPP Everywhere attribute
+checks pass, and their jobs arrive as Apple Raster into a capture device (v0.2). Next: the
+raster and halftone pipeline (M3). See [PROGRESS.md](PROGRESS.md).
 
 | Milestone | What it delivers |
 |---|---|
 | M0–M1 ✅ | probe, vendor fixtures, USB transport, `decode` |
-| M2 🔄 | printer visible to iPhone/iPad/Mac; incoming raster captured |
+| M2 ✅ | printer visible to iPhone/iPad/Mac; incoming raster captured |
 | M3–M5 | raster, halftone, band codec, QPDL encoder |
 | M6 | first page printed with no vendor code (v0.3) |
 | M7–M8 | launchd service, installer, reliability soak (v1.0) |

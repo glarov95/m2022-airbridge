@@ -224,8 +224,7 @@ static bool cb_rendpage(pappl_job_t *job, pappl_pr_options_t *options, pappl_dev
     }
     (void)page;
     papplLogJob(job, PAPPL_LOGLEVEL_INFO, "page %u done: %u lines", c->page, c->lines_written);
-    papplJobSetImpressionsCompleted(job, 1);
-    return true;
+    return true; /* PAPPL counts impressions for raster jobs itself */
 }
 
 static bool cb_rendjob(pappl_job_t *job, pappl_pr_options_t *options, pappl_device_t *device)
