@@ -234,6 +234,27 @@ int main(void)
     memset(&info, 0, sizeof info);
     CHECK(!m2022_service_uninstall_plan(&info, &opts, &plan, why, sizeof why));
 
+    /* the vendor driver: backup before deletion, queue removed, receipt forgotten */
+    memset(&info, 0, sizeof info);
+    CHECK(!m2022_service_remove_vendor_plan(&info, &plan, why, sizeof why));
+    info.vendor_driver = true;
+    info.vendor_queue = true;
+    info.user_exists = true;
+    CHECK(m2022_service_remove_vendor_plan(&info, &plan, why, sizeof why));
+    {
+        int backup = find_run(&plan, "sh", "-c"), queue = find_run(&plan, "lpadmin", "-x");
+        int rm = find_run(&plan, "rm", "-rf"), forget = find_run(&plan, "pkgutil", "--forget");
+        CHECK(backup > 0 && strstr(plan.steps[backup].argv[2], "tar czf") != NULL);
+        CHECK(strstr(plan.steps[backup].argv[2], "/Library/Printers/Samsung") != NULL);
+        CHECK(queue > backup && rm > queue && forget > rm);
+        CHECK_EQ_STR(plan.steps[rm].argv[2], "/Library/Printers/Samsung");
+    }
+    m2022_plan_free(&plan);
+    info.vendor_queue = false;
+    CHECK(m2022_service_remove_vendor_plan(&info, &plan, why, sizeof why));
+    CHECK(find_run(&plan, "lpadmin", "-x") < 0);
+    m2022_plan_free(&plan);
+
     /* the printed plan is shell-like and quotes paths with spaces */
     fresh_mac(&info);
     CHECK(m2022_service_install_plan(&info, &params, &opts, &plan, why, sizeof why));

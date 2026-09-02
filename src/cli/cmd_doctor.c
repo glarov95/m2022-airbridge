@@ -182,7 +182,10 @@ int cmd_doctor(int argc, char **argv)
         }
         if (info.vendor_queue) {
             report(&t, 1, "vendor queue", M2022_VENDOR_QUEUE " still exists",
-                   "two USB owners fight (ADR-006); install removes it, or `lpadmin -x`");
+                   info.vendor_driver
+                       ? "macOS re-adds it while the Samsung driver is installed: `sudo "
+                         "m2022-airbridge remove-vendor-driver` (backs it up first)"
+                       : "two USB owners fight (ADR-006); `lpadmin -x " M2022_VENDOR_QUEUE "`");
         }
         check_log(&t);
     }

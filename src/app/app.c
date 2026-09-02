@@ -58,6 +58,7 @@ typedef struct {
     uint32_t alloc_raster_width, alloc_width;
     int copies;
     unsigned page;
+    bool first_band_logged;
     uint32_t lines_in;
     size_t bytes_out;
     double t_start;
@@ -409,6 +410,12 @@ static bool cb_rwriteline(pappl_job_t *job, pappl_pr_options_t *options, pappl_d
         return false;
     }
     j->lines_in++;
+    if (!j->first_band_logged && j->enc.bands_written > 0) {
+        char when[32]; /* SPEC.md 7.4: time from job start to the first bytes on the device */
+        j->first_band_logged = true;
+        snprintf(when, sizeof when, "%.2f s", now_seconds() - j->t_start);
+        papplLogJob(job, PAPPL_LOGLEVEL_INFO, "first band on the device after %s", when);
+    }
     return true;
 }
 
@@ -705,6 +712,10 @@ int m2022_app_run(const m2022_app_config_t *cfg)
         }
     }
     papplSystemSetDefaultPrinterID(system, papplPrinterGetID(printer));
+    /* limits (SPEC.md 6.11): queue depth, history, and the size of images PAPPL rasterises */
+    papplPrinterSetMaxActiveJobs(printer, 20);
+    papplPrinterSetMaxCompletedJobs(printer, 50);
+    papplSystemSetMaxImageSize(system, 128 * 1024 * 1024, 16384, 16384);
     papplLog(system, PAPPL_LOGLEVEL_INFO, "printer \"%s\" ready on port %d, device %s%s%s", name,
              cfg->port > 0 ? cfg->port : 8000, device_uri,
              app.capture_dir[0] ? ", capturing to " : "", app.capture_dir);

@@ -100,6 +100,29 @@ int cmd_uninstall(int argc, char **argv)
     return run_plan(&plan, dry_run, "uninstall");
 }
 
+int cmd_remove_vendor(int argc, char **argv)
+{
+    m2022_service_info_t info;
+    m2022_plan_t plan;
+    char why[256];
+    bool dry_run = false;
+
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "--dry-run") == 0) {
+            dry_run = true;
+        } else {
+            fprintf(stderr, "Usage: m2022-airbridge remove-vendor-driver [--dry-run]\n");
+            return 2;
+        }
+    }
+    m2022_service_inspect(&info);
+    if (!m2022_service_remove_vendor_plan(&info, &plan, why, sizeof why)) {
+        fprintf(stderr, "remove-vendor-driver: %s\n", why);
+        return 2;
+    }
+    return run_plan(&plan, dry_run, "remove-vendor-driver");
+}
+
 static int launchctl(const char *a, const char *b, const char *c)
 {
     const char *const argv[] = {"launchctl", a, b, c, NULL};
@@ -176,7 +199,8 @@ int cmd_status(int argc, char **argv)
                M2022_VENDOR_QUEUE);
     }
     printf("log:      %s\n", M2022_SERVICE_LOG_FILE);
-    return info.launchd.running && rc == 0 ? 0 : 1;
+    /* 0 only when the service runs, answers IPP and the printer is not stopped (5) */
+    return info.launchd.running && rc == 0 && ipp.state != 5 ? 0 : 1;
 }
 
 int cmd_logs(int argc, char **argv)

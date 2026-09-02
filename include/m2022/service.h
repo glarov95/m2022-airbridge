@@ -28,6 +28,11 @@
 #define M2022_SERVICE_QUEUE "Samsung_M2022"
 #define M2022_VENDOR_QUEUE "Samsung_M2020_Series"
 #define M2022_VENDOR_PPD "/etc/cups/ppd/" M2022_VENDOR_QUEUE ".ppd"
+#define M2022_VENDOR_DRIVER_DIR "/Library/Printers/Samsung"
+#define M2022_VENDOR_PPD_DIR "/Library/Printers/PPDs/Contents/Resources"
+#define M2022_VENDOR_CACHE_DIR "/Library/Caches/com.sec.printer"
+#define M2022_VENDOR_RECEIPT "com.samsung.PrinterDriverInstaller.pkg"
+#define M2022_VENDOR_BACKUP_TAR M2022_SERVICE_BACKUP_DIR "/vendor-driver.tar.gz"
 #define M2022_SERVICE_UID_MIN 300 /* hidden system accounts live below 500 */
 #define M2022_SERVICE_UID_MAX 499
 
@@ -65,10 +70,11 @@ typedef struct {
     bool binary_installed; /* M2022_SERVICE_BINARY exists */
     bool plist_exists;
     m2022_launchd_state_t launchd;
-    bool usb_printer;  /* an SL-M2022 is on the bus */
-    bool vendor_queue; /* the Samsung CUPS queue exists */
-    bool vendor_ppd;   /* its PPD is on disk */
-    bool our_queue;    /* a CUPS queue points at our printer */
+    bool usb_printer;   /* an SL-M2022 is on the bus */
+    bool vendor_queue;  /* the Samsung CUPS queue exists */
+    bool vendor_ppd;    /* its PPD is on disk */
+    bool vendor_driver; /* the Samsung driver package is installed (M2022_VENDOR_DRIVER_DIR) */
+    bool our_queue;     /* a CUPS queue points at our printer */
     char our_queue_name[128];
     bool backup_exists; /* a vendor queue backup is in the support directory */
     bool queue_marker;  /* the installer created the CUPS queue */
@@ -126,6 +132,10 @@ bool m2022_service_install_plan(const m2022_service_info_t *info, const m2022_se
                                 size_t why_size);
 bool m2022_service_uninstall_plan(const m2022_service_info_t *info, const m2022_plan_options_t *o,
                                   m2022_plan_t *plan, char *why, size_t why_size);
+/* Back up and remove the Samsung driver package, which macOS otherwise uses to re-create the
+ * vendor queue whenever the printer appears on USB (docs/macos-service.md). */
+bool m2022_service_remove_vendor_plan(const m2022_service_info_t *info, m2022_plan_t *plan,
+                                      char *why, size_t why_size);
 void m2022_plan_free(m2022_plan_t *plan);
 
 /* Print the plan as shell-like lines ("+ launchctl ..."). */

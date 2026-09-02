@@ -32,3 +32,11 @@ installer meets. A subcommand keeps the whole product in one binary, like the ve
 - Restoring the vendor queue on uninstall works only while the Samsung driver is installed.
 - Unified Logging and a config file (SPEC.md 6.10) are open; the plist's arguments carry the
   settings for now.
+
+## Update 2026-09-02 (M8): logging stays in the file
+
+PAPPL logs to one destination: a file, stderr, or `syslog(3)` (which lands in Unified
+Logging on macOS). The file wins: `doctor` reads it for the last error, `logs -f` tails it,
+newsyslog rotates it, and it survives without any `log show` privileges or predicates. A
+second destination would need a log callback PAPPL 1.4 does not have. `log stream` therefore
+shows nothing for this daemon; that is documented rather than fixed.

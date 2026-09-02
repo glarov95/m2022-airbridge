@@ -10,6 +10,7 @@ int cmd_render(int argc, char **argv);
 int cmd_encode(int argc, char **argv);
 int cmd_install(int argc, char **argv);
 int cmd_uninstall(int argc, char **argv);
+int cmd_remove_vendor(int argc, char **argv);
 int cmd_service(const char *verb, int argc, char **argv); /* start, stop, restart */
 int cmd_status(int argc, char **argv);
 int cmd_logs(int argc, char **argv);

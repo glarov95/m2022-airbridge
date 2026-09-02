@@ -7,3 +7,8 @@ set_tests_properties(hw_usb_probe hw_usb_replay_black_square PROPERTIES LABELS "
 add_test(NAME hw_native_black_square
          COMMAND sh -c "$<TARGET_FILE:m2022-airbridge> encode ${PROJECT_SOURCE_DIR}/fixtures/oracle/samsung/black-square-a4.ras.gz --preset text --out ${PROJECT_BINARY_DIR}/native-black-square.spl && $<TARGET_FILE:m2022-airbridge> send ${PROJECT_BINARY_DIR}/native-black-square.spl")
 set_tests_properties(hw_native_black_square PROPERTIES LABELS "hardware")
+# Through the installed daemon (port 8000): N small jobs, each must complete. Uses paper.
+add_test(NAME hw_soak_installed
+         COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/soak.sh $<TARGET_FILE:m2022-airbridge>
+                 ${PROJECT_SOURCE_DIR}/fixtures/oracle/samsung 2 8000)
+set_tests_properties(hw_soak_installed PROPERTIES LABELS "hardware" TIMEOUT 300)

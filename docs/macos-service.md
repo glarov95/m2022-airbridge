@@ -70,13 +70,41 @@ The vendor queue is restored from the backup with `lpadmin -P backup.ppd`; that 
 while the Samsung driver package is still installed (its filters are what the PPD names). The
 queue the installer created is removed; a queue you added yourself is left alone.
 
+## The vendor driver
+
+macOS adds a queue automatically whenever a USB printer with an installed driver appears, so
+as long as the Samsung driver package is on the Mac the old queue comes back after every
+power cycle or replug, next to ours (`doctor` warns: "vendor queue still exists"). Nothing
+breaks unless someone prints to it, but two queues for one printer is confusing and the old
+one is the Intel binary that dies with macOS 28. The cure is to remove the driver package,
+a separate and explicit step:
+
+```sh
+sudo m2022-airbridge remove-vendor-driver --dry-run   # the plan
+sudo m2022-airbridge remove-vendor-driver             # backup, then delete
+```
+
+It archives `/Library/Printers/Samsung` and the Samsung PPDs into the backup directory, removes
+the vendor queue, deletes the driver files, the PPDs and the driver cache, and forgets the
+package receipt. `sudo tar xzf …/backup/vendor-driver.tar.gz -C /` puts the driver back.
+
 ## Checklist for a new machine (M8 soak)
 
-- [ ] `install` on a Mac with the vendor driver: plan runs through, `doctor` clean
-- [ ] print from an iPhone with no terminal open
-- [ ] reboot: printer visible and printing without any manual step
+- [x] `install` on a Mac with the vendor driver: plan runs through, `doctor` clean (2026-09-02)
+- [x] `install` again as the upgrade path (2026-09-02; the running service is stopped first)
+- [x] print from an iPhone with no terminal open (2026-09-02)
+- [x] two jobs back to back through the daemon (`tests/hardware/soak.sh`, 2026-09-02)
+- [x] 20-page job through the pipeline: 70 pages/min, 52 MB peak RSS, first band after
+      0.05 s (`scripts/measure-throughput.sh`, file device, 2026-09-02)
+- [x] printer off: a submitted job waits (PAPPL retries the device every 5 s, the client's
+      connection stays open), `status` shows "stopped, paused" and no printer on USB; on again:
+      it printed by itself after 4 minutes of waiting (2026-09-02). Caveat: macOS re-created
+      the Samsung queue the moment the printer re-appeared, because the vendor driver package
+      is still installed (see "The vendor driver" below)
 - [ ] sleep and wake: printing works after wake (mDNSResponder re-registers)
-- [ ] printer off: `status` shows offline; on again: printing resumes without a restart
+- [x] USB unplugged and plugged back: `status` said "no SL-M2022 on USB" and "offline"; after
+      the replug a page from the phone printed, no restart (2026-09-02)
+- [ ] reboot: printer visible and printing without any manual step
 - [ ] `uninstall` restores the vendor queue; `install` again
 
 ## What this teaches

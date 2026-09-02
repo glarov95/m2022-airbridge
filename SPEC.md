@@ -375,7 +375,7 @@ Installer steps, each idempotent and each printing what it did:
 
 Uninstall reverses every step and restores the Samsung queue from the backup. Distributed as a signed and notarized `.pkg` (M11) with a Homebrew tap as a second channel.
 
-As built in M7: `m2022-airbridge install [--dry-run] [--keep-vendor-queue] [--test-page]` and `uninstall [--dry-run] [--purge]` build a plan from an inspection of the Mac (user, launchd state, queues, USB printer), print every step and run it; the plans are unit-tested (`tests/unit/test_service.c`). Step 4 of the list above runs `probe --quiet` as the service user before the vendor queue is touched. The driverless queue is created only when no queue points at the printer.
+As built in M7: `m2022-airbridge install [--dry-run] [--keep-vendor-queue] [--test-page]` and `uninstall [--dry-run] [--purge]` build a plan from an inspection of the Mac (user, launchd state, queues, USB printer), print every step and run it; the plans are unit-tested (`tests/unit/test_service.c`). Step 4 of the list above runs `probe --quiet` as the service user before the vendor queue is touched. The driverless queue is created only when no queue points at the printer. `remove-vendor-driver [--dry-run]` (M8) archives the Samsung driver files and PPDs into the backup directory and deletes them; needed because macOS re-creates the vendor queue from the installed driver whenever the printer appears on USB.
 
 ### 6.9 CLI
 
@@ -455,6 +455,8 @@ Print the sheet through (a) the vendor driver while it still exists, (b) SpliX o
 | Raster + halftone + compression + framing throughput | > 10 pages/min, i.e. never the bottleneck behind the 20 ppm engine |
 | Peak RSS of the daemon during a 50-page job | < 200 MB |
 | Job size, text page, 0x11 | comparable to vendor output (fixtures give the number) |
+
+Measured 2026-09-02 (M8, `scripts/measure-throughput.sh`, Debug build with sanitizers, file device): first band on the device 0.05 s after job start; 20 text pages in 17.2 s = 70 pages/min; 5 photo pages 78 pages/min; peak RSS 52 MB; text page 220 KB against the vendor's 288 KB. All four targets met.
 
 ---
 

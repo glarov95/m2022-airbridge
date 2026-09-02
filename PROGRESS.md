@@ -5,40 +5,36 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Where we are
 
-- **Milestone:** M7 complete. The Printer Application is installed on this Mac as a launchd
-  daemon under the hidden user `_m2022airbridge`, started by `sudo m2022-airbridge install`,
-  which also backed up and removed the Samsung queue. `doctor` is green; the upgrade path
-  (`install` again) was exercised. Next: M8, the reliability soak, and the two loose ends
-  from M7: the reboot check and Unified Logging.
+- **Milestone:** M8 in progress. The installed service survived the soak so far: printer
+  off (a job waits and prints when it comes on), USB unplugged and replugged, two jobs back
+  to back, a 20-page job at 70 pages/min with 52 MB peak RSS and the first band on the wire
+  after 0.05 s. Found and handled: macOS re-creates the Samsung queue from the installed
+  vendor driver whenever the printer appears on USB, so `remove-vendor-driver` exists (backup
+  first). Remaining for v1.0: sleep/wake, the reboot check, the decision to remove the vendor
+  driver, and a week of daily use.
 - **Last update:** 2026-09-02.
-- **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD). The vendor CUPS
-  queue is gone (backup in `/Library/Application Support/M2022AirBridge/backup`); the vendor
-  driver package is still installed and can stay until a `.pkg` exists (M11).
+- **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD), served by the
+  installed daemon. The vendor driver package is still installed (its queue reappears at
+  every power cycle until `sudo m2022-airbridge remove-vendor-driver` is run).
 - **Running it today:** it runs by itself. `m2022-airbridge status`, `doctor`, `logs -f`;
   `sudo m2022-airbridge restart`. A dev server on port 8000 conflicts with the daemon: use
   `--port 8001` or `sudo m2022-airbridge stop` first.
 
 ## Next up
 
-**M8 — Reliability soak (v1.0)** (SPEC.md M8, 7.4, 6.11; docs/macos-service.md checklist).
+**M8 — finish the soak (v1.0)** (docs/macos-service.md checklist; SPEC.md M8, 17).
 
-1. Reboot the Mac: the printer must be visible and print from the iPhone with nothing done
-   by hand (M7's acceptance line that is still open). Then sleep/wake, printer off and on
-   during idle and during a job, USB unplug/replug: `status` and `doctor` must tell the
-   truth and printing must resume without a restart. Record each in the checklist.
-2. Job-level robustness: cancel from the phone mid-job (rendjob closes the stream; check the
-   printer recovers), two jobs queued, a 20-page document, a Letter page (the geometry with
-   asymmetric margins on real paper), each media type option, manual feed. Photo, text, draft
-   and high quality from the phone's dialog.
-3. Resource limits (SPEC 6.11): job size and queue depth via PAPPL's max settings; peak RSS
-   during a 50-page job (`ps`); time to first byte on USB (log timestamps): compare with the
-   targets in SPEC 7.4.
-4. Unified Logging: an `os_log` sink for PAPPL's log (PAPPL supports `syslog`, which lands in
-   `log show`; decide whether that is enough) so `log stream --predicate 'process ==
-   "m2022-airbridge"'` works; keep the file log.
-5. Hardware test scripts for the soak (label `hardware`), a `docs/macos-service.md` checklist
-   filled in with dates, SPEC section 17's v1.0 line, README status v1.0 when the week of
-   daily use is done.
+1. With the user: `sudo m2022-airbridge remove-vendor-driver` (their call; the plan is
+   printed first), sleep/wake, the reboot check (printer visible and printing with nothing
+   done by hand), then a page a day for a week. Tick the checklist with dates.
+2. Cancel from the phone mid-job (the Floyd–Steinberg photo page takes a few seconds):
+   `rendjob` closes the stream; confirm the printer prints the partial page or nothing and the
+   next job is fine. Two jobs queued while one prints: PAPPL answers busy to the second raster
+   job; check what the phone does with that.
+3. A Letter page and a manual-feed job from the phone (media options in the print dialog).
+4. When the week is clean: SPEC section 17 v1.0 line, README status v1.0, tag `v1.0`.
+5. Then M9 (status details, manual duplex, 1200 dpi, toner level over the vendor's USB
+   control request; SPEC questions 4, 5, 8, 9, 10).
 
 ## Milestones
 
@@ -51,8 +47,8 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 | M4 | Band codec 0x11 encoder | done | 2026-09-02 | f22d645 |
 | M5 | QPDL encoder and `encode`, first native print | done | 2026-09-02 | 74c2e6a |
 | M6 | iPhone and Mac print through the Printer Application (v0.3) | done | 2026-09-02 | 0a92b2d |
-| M7 | Service, installer, doctor | done | 2026-09-02 | (this commit) |
-| M8 | Reliability soak (v1.0) | next | | |
+| M7 | Service, installer, doctor | done | 2026-09-02 | b2f9485 |
+| M8 | Reliability soak (v1.0) | in progress | | |
 | M9 | Status, manual duplex, 1200 dpi experiment | todo | | |
 | M10 | Quality program (v1.5) | todo | | |
 | M11 | Release engineering, documentation site | todo | | |
@@ -86,6 +82,15 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Session log
 
+- **2026-09-02 (M8, part 1)** — Limits (20 active jobs, 50 kept, 128 MB images), a "first
+  band on the device" log line, `scripts/measure-throughput.sh` (multi-page job through a
+  file device: 70 pages/min, 52 MB RSS, 0.05 s to first band), `tests/hardware/soak.sh` (N
+  jobs through the daemon), `status` exits 1 for a stopped printer. Hardware: printer off →
+  job waited 4 min and printed when switched on (PAPPL streams raster jobs, so the client's
+  connection waits too; documented); USB unplug/replug → `status` offline, printing resumed.
+  macOS re-created the Samsung queue when the printer reappeared: `remove-vendor-driver`
+  command (plan, dry run, tar backup of the driver dir and 34 PPDs verified: 823 entries).
+  ADR-011 updated: logging stays in the file. 19 suites pass.
 - **2026-09-02 (M7)** — `src/service/`: paths, launchd plist, newsyslog entry, launchctl
   parsing, UID choice, install/uninstall plans built from an inspection of the Mac and
   executed step by step (`--dry-run` prints them), DNS-SD browse; `src/cups/ipp.c`: one

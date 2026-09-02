@@ -243,6 +243,7 @@ void m2022_service_inspect(m2022_service_info_t *info)
         }
     }
     info->vendor_ppd = exists(M2022_VENDOR_PPD);
+    info->vendor_driver = exists(M2022_VENDOR_DRIVER_DIR);
     info->backup_exists = exists(M2022_SERVICE_BACKUP_DIR "/" M2022_VENDOR_QUEUE ".ppd");
     info->queue_marker = exists(M2022_SERVICE_QUEUE_MARKER);
     info->support_dir = exists(M2022_SERVICE_SUPPORT_DIR);
@@ -552,6 +553,47 @@ bool m2022_service_uninstall_plan(const m2022_service_info_t *info, const m2022_
         add_note(plan, "kept the state, logs, backups and the service user (uninstall --purge "
                        "removes them)");
     }
+    return true;
+}
+
+bool m2022_service_remove_vendor_plan(const m2022_service_info_t *info, m2022_plan_t *plan,
+                                      char *why, size_t why_size)
+{
+    m2022_step_t *s;
+    const char *owner = M2022_SERVICE_USER ":" M2022_SERVICE_USER;
+
+    memset(plan, 0, sizeof *plan);
+    if (!info->vendor_driver) {
+        snprintf(why, why_size, "no Samsung driver package at " M2022_VENDOR_DRIVER_DIR);
+        return false;
+    }
+    add_note(plan, "removing Samsung's driver package (Intel-only, unusable after macOS 28); "
+                   "a backup is made first");
+    add_mkdir(plan, M2022_SERVICE_BACKUP_DIR, 0750, info->user_exists ? owner : NULL);
+    add_run(plan, "back up the driver files and PPDs", "sh", "-c",
+            "cd / && find " M2022_VENDOR_PPD_DIR
+            "/. -maxdepth 1 -name 'Samsung *' -print0 | tar czf '" M2022_VENDOR_BACKUP_TAR
+            "' --null -T - " M2022_VENDOR_DRIVER_DIR,
+            NULL);
+    if (info->vendor_queue) {
+        s = add_run(plan, "remove the Samsung queue", "lpadmin", "-x", M2022_VENDOR_QUEUE, NULL);
+        if (s != NULL) {
+            s->ignore_failure = true;
+        }
+    }
+    add_run(plan, "delete the driver files", "rm", "-rf", M2022_VENDOR_DRIVER_DIR, NULL);
+    add_run(plan, "delete the Samsung PPDs", "sh", "-c",
+            "rm -f '" M2022_VENDOR_PPD_DIR "/Samsung '*", NULL);
+    s = add_run(plan, "delete the driver cache", "rm", "-rf", M2022_VENDOR_CACHE_DIR, NULL);
+    if (s != NULL) {
+        s->ignore_failure = true;
+    }
+    s = add_run(plan, "forget the package receipt", "pkgutil", "--forget", M2022_VENDOR_RECEIPT,
+                NULL);
+    if (s != NULL) {
+        s->ignore_failure = true;
+    }
+    add_note(plan, "restore with: sudo tar xzf '" M2022_VENDOR_BACKUP_TAR "' -C /");
     return true;
 }
 

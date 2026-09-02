@@ -86,6 +86,7 @@ uninstall` reverses it and restores the Samsung queue. Details: [docs/macos-serv
 ./build/src/m2022-airbridge render IN.pgm --preset photo --out page.pbm   # halftone a page
 m2022-airbridge status | doctor | logs -f        # the installed service
 sudo m2022-airbridge start | stop | restart | uninstall
+sudo m2022-airbridge remove-vendor-driver       # back up and delete the Samsung driver package
 ```
 
 ## Fixtures

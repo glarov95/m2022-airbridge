@@ -3,8 +3,9 @@
  *
  * Subcommands are added milestone by milestone (see SPEC.md section 6.9).
  */
-#include "cli.h"
 #include "m2022/version.h"
+
+#include "cli.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -19,9 +20,11 @@ static int usage(FILE *out)
           "  decode FILE [options] explain a captured SPL/QPDL job; --pbm PREFIX writes pages\n"
           "  server [options]      run the Printer Application in the foreground\n"
           "  render IN [options]   halftone a PGM or CUPS raster into a PBM (--preset, --method)\n"
-          "  encode IN [options]   build a complete printer job (.spl) from a PGM, PBM or CUPS raster\n"
+          "  encode IN [options]   build a complete printer job (.spl) from a PGM, PBM or CUPS "
+          "raster\n"
           "  install [--dry-run]   install the launchd service on this Mac (sudo)\n"
           "  uninstall [--purge]   remove it (sudo)\n"
+          "  remove-vendor-driver  back up and delete the Samsung driver package (sudo)\n"
           "  start|stop|restart    control the service (sudo)\n"
           "  status                service, printer and queue state\n"
           "  logs [-n N] [-f]      show the service log\n"
@@ -70,6 +73,9 @@ int main(int argc, char **argv)
     }
     if (strcmp(cmd, "uninstall") == 0) {
         return cmd_uninstall(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "remove-vendor-driver") == 0) {
+        return cmd_remove_vendor(argc - 2, argv + 2);
     }
     if (strcmp(cmd, "start") == 0 || strcmp(cmd, "stop") == 0 || strcmp(cmd, "restart") == 0) {
         return cmd_service(cmd, argc - 2, argv + 2);
