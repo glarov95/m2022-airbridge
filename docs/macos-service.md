@@ -105,7 +105,10 @@ package receipt. `sudo tar xzf …/backup/vendor-driver.tar.gz -C /` puts the dr
 - [x] USB unplugged and plugged back: `status` said "no SL-M2022 on USB" and "offline"; after
       the replug a page from the phone printed, no restart (2026-09-02)
 - [ ] reboot: printer visible and printing without any manual step
-- [ ] `uninstall` restores the vendor queue; `install` again
+- [x] `remove-vendor-driver`: backup (823 files), queue, driver files, PPDs, cache and receipt
+      gone; `doctor` clean afterwards (2026-09-02)
+- [ ] `uninstall` restores the vendor queue from the backup (needs the driver put back first
+      now); `install` again
 
 ## What this teaches
 

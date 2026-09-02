@@ -14,8 +14,9 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
   driver, and a week of daily use.
 - **Last update:** 2026-09-02.
 - **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD), served by the
-  installed daemon. The vendor driver package is still installed (its queue reappears at
-  every power cycle until `sudo m2022-airbridge remove-vendor-driver` is run).
+  installed daemon. The vendor driver package was removed on 2026-09-02 (backup:
+  `/Library/Application Support/M2022AirBridge/backup/vendor-driver.tar.gz`, and the M0
+  copy under `artifacts/vendor-driver-backup/`); nothing from Samsung runs on this Mac.
 - **Running it today:** it runs by itself. `m2022-airbridge status`, `doctor`, `logs -f`;
   `sudo m2022-airbridge restart`. A dev server on port 8000 conflicts with the daemon: use
   `--port 8001` or `sudo m2022-airbridge stop` first.
@@ -24,8 +25,7 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 **M8 — finish the soak (v1.0)** (docs/macos-service.md checklist; SPEC.md M8, 17).
 
-1. With the user: `sudo m2022-airbridge remove-vendor-driver` (their call; the plan is
-   printed first), sleep/wake, the reboot check (printer visible and printing with nothing
+1. With the user: sleep/wake, the reboot check (printer visible and printing with nothing
    done by hand), then a page a day for a week. Tick the checklist with dates.
 2. Cancel from the phone mid-job (the Floyd–Steinberg photo page takes a few seconds):
    `rendjob` closes the stream; confirm the printer prints the partial page or nothing and the

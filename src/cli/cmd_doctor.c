@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct {
     int fails, warns;
@@ -37,16 +38,30 @@ static void report(tally_t *t, int level, const char *check, const char *detail,
     }
 }
 
+/* Seconds since a PAPPL log line's timestamp ("I [2026-09-02T18:57:36.975Z] ..."), or -1. */
+static long log_line_age(const char *line)
+{
+    struct tm tm;
+    const char *p = strchr(line, '[');
+    if (p == NULL || strptime(p + 1, "%Y-%m-%dT%H:%M:%S", &tm) == NULL) {
+        return -1;
+    }
+    return (long)(time(NULL) - timegm(&tm));
+}
+
 static void check_log(tally_t *t)
 {
     FILE *f = fopen(M2022_SERVICE_LOG_FILE, "r");
     char line[1024], last_error[1024] = "";
+    char detail[1200];
     int lines = 0;
+    long age;
+
     if (f == NULL) {
         if (errno == EACCES) {
-            report(
-                t, 1, "log", M2022_SERVICE_LOG_FILE " is not readable by this user",
-                "run `sudo m2022-airbridge install` again (it makes the log readable) or use sudo");
+            report(t, 1, "log", M2022_SERVICE_LOG_FILE " is not readable by this user",
+                   "run `sudo m2022-airbridge install` again (it makes the log readable) or use "
+                   "sudo");
         } else {
             report(t, 1, "log", "no log file yet", "the service writes " M2022_SERVICE_LOG_FILE);
         }
@@ -59,12 +74,18 @@ static void check_log(tally_t *t)
         }
     }
     fclose(f);
-    if (last_error[0] != '\0') {
-        last_error[strcspn(last_error, "\n")] = '\0';
+    if (last_error[0] == '\0') {
+        snprintf(detail, sizeof detail, "%d lines, no errors", lines);
+        report(t, 0, "log", detail, NULL);
+        return;
+    }
+    last_error[strcspn(last_error, "\n")] = '\0';
+    age = log_line_age(last_error);
+    if (age < 0 || age < 15 * 60) { /* recent, or undated: worth a look */
         report(t, 1, "log", last_error, "the last error line; `m2022-airbridge logs` shows more");
     } else {
-        char detail[64];
-        snprintf(detail, sizeof detail, "%d lines, no errors", lines);
+        snprintf(detail, sizeof detail, "%d lines, last error %ld min ago: %.80s", lines, age / 60,
+                 strchr(last_error, ']') ? strchr(last_error, ']') + 2 : last_error);
         report(t, 0, "log", detail, NULL);
     }
 }
