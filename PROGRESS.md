@@ -5,44 +5,43 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Where we are
 
-- **Milestone:** M5 complete, and the first native print is on paper: the black square and
-  the small-text page, produced by `encode` from our halftone, our band codec and our job
-  encoder, sent with `send`, printed correctly on 2026-09-02. No vendor code or bytes were
-  involved. Next: M6, wiring the pipeline behind the PAPPL raster callbacks and replacing the
-  capture device with the USB transport, so the iPhone and the Mac print for real (v0.3).
+- **Milestone:** M6 complete, **v0.3**: the iPhone and the Mac print through the Printer
+  Application (2026-09-02), over our own IPP front end, raster pipeline, halftone, band
+  codec, job encoder and USB transport. The Mac printer was added through System Settings
+  as an AirPrint printer ("Samsung M2022"). Next: M7, the launchd service, installer and
+  doctor, so it runs without a terminal.
 - **Last update:** 2026-09-02.
 - **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD). The vendor CUPS
-  queue `Samsung_M2020_Series` is still installed and idle; it stays until M7 removes it.
+  queue `Samsung_M2020_Series` is still installed and idle; M7 removes it.
+- **Running it today:** `./build/src/m2022-airbridge server --spool build/run/spool --log
+  build/run/server.log` (the USB printer is the default device); stop with
+  `pkill -f 'm2022-airbridge server'`.
 
 ## Next up
 
-**M6 — First native print from the clients (v0.3)** (SPEC.md 5, 6.1, 6.6; docs/ipp-airprint.md;
-docs/architecture.md; `src/app/app.c` has the driver data and the capture callbacks).
+**M7 — Service, installer, doctor** (SPEC.md 6.7, 6.8, 6.9; docs/architecture.md; ADR-006).
 
-1. Job pipeline in `src/app/`: in `rstartjob` pick the preset from `print-quality` and
-   `print-content-optimize` (draft → Draft, normal → Normal, high → Photo; text content →
-   Text), build the `m2022_qpdl_job_t` from the job's media (`m2022_media_by_pwg`), media
-   source (auto/manual), media type (map PWG names to the vendor's PAPERTYPE strings, default
-   OFF), copies, today's date, the producer string; open the device; `m2022_qpdl_begin_job`
-   with a sink that writes to the PAPPL device (`papplDeviceWrite`). In `rstartpage`
-   `m2022_qpdl_begin_page` with the raster width and a workspace sized once; in `rwriteline`
-   convert the line (sGray 8 / black 1) with `m2022_raster_line_to_gray`, tone, halftone,
-   `m2022_qpdl_write_line`; `rendpage` → `m2022_qpdl_end_page`; `rendjob` →
-   `m2022_qpdl_end_job`. Keep the capture callbacks behind `--capture` for debugging.
-2. Geometry: the client raster is the full page or the printable area at 600 dpi; compare the
-   header's width/height and the media size with what `encode` used for the vendor rasters
-   (4750×6808 for A4) and fit with `m2022_raster_fit_line` when the client sends the full
-   page (margins 12.5 pt). Measure what iOS and macOS actually send (docs/ipp-airprint.md has
-   the captured headers).
-3. USB device for PAPPL: a `pappl_device_t` scheme "m2022usb://" backed by `src/usb/` (open,
-   write, status), or PAPPL's own `usb://` scheme if it works unprivileged on macOS 26; the
-   `server --device` option selects it. Job status: port status bits → printer-state-reasons.
-4. Tests: a unit test for the option mapping (quality/content → preset, PWG media type →
-   PAPERTYPE); an integration test that runs `server` with a file device, submits the captured
-   Apple Raster jobs from `artifacts/capture` (or fixtures) with `ipptool`/`lp`, and checks the
-   produced job with `decode` (page count, band width, bands non-empty). Hardware: print the
-   test pages from the iPhone and the Mac (only when the user says the printer is on).
-5. Then: `docs/architecture.md` "data path today" becomes the real one; README status v0.3.
+1. `service/` adapter: a launchd LaunchAgent (or LaunchDaemon with a dedicated user; decide
+   in an ADR: the LaunchAgent is simpler and libusb works unprivileged, ADR-009) that runs
+   `m2022-airbridge server` at login/boot with `--spool` and `--log` under
+   `~/Library/Application Support/M2022 AirBridge/` and logs under `~/Library/Logs/`; restart
+   on crash (KeepAlive); state file for PAPPL (`papplSystemSetStateFile`?) so the printer
+   keeps its ID and settings across restarts.
+2. `install` / `uninstall` commands (or `scripts/install.sh`): copy the binary to
+   `/usr/local/bin` or `~/Library/...`, write the plist, `launchctl bootstrap`, verify with
+   `probe`; uninstall reverses it. Removing the vendor CUPS queue (`lpadmin -x
+   Samsung_M2020_Series`) and offering to remove the vendor driver package are separate,
+   explicit steps that ask first (ADR-006; keep `artifacts/vendor-driver-backup/`).
+3. `doctor` command: checks the binary, the plist, the running service (launchctl print),
+   the USB printer (probe), the DNS-SD advertisement (`dns-sd -B _ipp._tcp,_universal`),
+   the IPP endpoint (Get-Printer-Attributes on localhost), and prints one line per check
+   with a fix hint.
+4. Unified Logging or the PAPPL log file: decide; at least rotate the log.
+5. Tests: unit tests for the plist generation and doctor checks that are pure; a manual
+   checklist for install/uninstall in docs/macos-service.md (planned doc, index already
+   lists it). Hardware: after install, print from the iPhone with no terminal open, then
+   reboot and print again.
+6. Open from M6: the state file so the printer ID stays stable across restarts.
 
 ## Milestones
 
@@ -53,9 +52,9 @@ docs/architecture.md; `src/app/app.c` has the driver data and the capture callba
 | M2 | PAPPL skeleton with capture device | done, v0.2 | 2026-09-02 | a8c6b5b + follow-up |
 | M3 | Raster and halftone pipeline | done | 2026-09-02 | 5e18397 |
 | M4 | Band codec 0x11 encoder | done | 2026-09-02 | f22d645 |
-| M5 | QPDL encoder and `encode`, first native print | done | 2026-09-02 | (this commit) |
-| M6 | Native print from iPhone and Mac (v0.3) | next | | |
-| M7 | Service, installer, doctor | todo | | |
+| M5 | QPDL encoder and `encode`, first native print | done | 2026-09-02 | 74c2e6a |
+| M6 | iPhone prints through the Printer Application (v0.3) | done | 2026-09-02 | (this commit) |
+| M7 | Service, installer, doctor | next | | |
 | M8 | Reliability soak (v1.0) | todo | | |
 | M9 | Status, manual duplex, 1200 dpi experiment | todo | | |
 | M10 | Quality program (v1.5) | todo | | |
@@ -76,6 +75,12 @@ docs/architecture.md; `src/app/app.c` has the driver data and the capture callba
   numbers as the vendor for the black square and the text page. Both printed correctly from
   `encode` + `send` on 2026-09-02: the first native print. A 743 KB Floyd–Steinberg photo
   page (largest vendor job: 521 KB) printed correctly too: page size is bandwidth only.
+- The whole path works end to end: iOS sends Apple Raster at the full page size (A4
+  4960×7015), we crop to the PPD imageable area at (104,104), halftone with the preset from
+  the job options, encode and write over USB through our own PAPPL device scheme; 53 bands,
+  440 KB, 1.1 s for a phone page. Copies go into the page records; the printer honours
+  the field (three sheets for copies 3).
+  docs/ipp-airprint.md, docs/usb.md.
 - USB access works unprivileged with libusb; the device ID advertises `URF`: `docs/usb.md`.
 - The vendor driver is Intel-only and stops working with macOS 28 (fall 2027). Its package is
   backed up under `artifacts/vendor-driver-backup/` (gitignored: keep a copy elsewhere too).
@@ -84,6 +89,21 @@ docs/architecture.md; `src/app/app.c` has the driver data and the capture callba
 
 ## Session log
 
+- **2026-09-02 (M6)** — `src/app/app.c`: the real raster callbacks (gray → crop to the
+  imageable area → tone → halftone → job encoder → device, one line at a time; copies in the
+  page records, which the printer honours: three sheets for copies 3; status callback from
+  the port status byte).
+  `src/app/usbdev.c`: PAPPL device scheme `m2022usb://` over `src/usb/`, now the server's
+  default device. `src/app/jobmap.c` + `test_jobmap`: quality/content → preset, media type →
+  PAPERTYPE, source → feeder, geometry from the PPD imageable areas (added per size to the
+  media table; verified against all 14 vendor rasters). `tests/integration/print-raster.sh`:
+  ipptool → server with a file device → the vendor's band structure, no hardware. Learned:
+  PAPPL's logger has no `%zu`. Hardware: black square through the server, then the iPhone
+  page: perfect (v0.3); the Mac, added as an AirPrint printer, printed a two-page document
+  (619 KB, 1.9 s). Copies 3 in the records gave three sheets (question 11). Supplies: the
+  vendor's `commandtosec` reports the toner level (46 %) without touching the print pipe;
+  it links IOKit and carries `EP0 command` and `@PJL LITESMSTATUS` strings, so the level
+  comes over a vendor USB control request (question 10, M9). 17 suites pass.
 - **2026-09-02 (M5)** — `src/qpdl/encode.c`: streaming job encoder (begin job / page, write
   line, end page / job) with the vendor's PJL envelope, page header from the media table,
   blank-band omission, per-band 0x11 tables, `m2022_qpdl_paper_dots` (rounding fixed: half

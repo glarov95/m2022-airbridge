@@ -17,6 +17,10 @@ typedef struct {
     const char *vendor_name;
     uint8_t qpdl_code;
     int width_pt, height_pt; /* from the vendor PPD PaperDimension */
+    /* The vendor PPD ImageableArea: left, bottom, right, top in points with the PostScript
+     * origin at the bottom left. The vendor's rasters are exactly this box at 600 dpi (A4
+     * 4750x6808, Letter 4896x6400); band pixel (0,0) lands at its top-left corner. */
+    double imageable[4];
 } m2022_media_t;
 
 const m2022_media_t *m2022_media_table(size_t *count);

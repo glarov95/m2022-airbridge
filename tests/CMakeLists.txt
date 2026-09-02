@@ -2,3 +2,5 @@
 # Hardware tests carry the label "hardware" so CI can run: ctest -LE hardware
 add_subdirectory(unit)
 add_subdirectory(hardware)
+
+add_subdirectory(integration)

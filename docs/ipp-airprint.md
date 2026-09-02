@@ -36,17 +36,57 @@ dns-sd -L "Samsung M2022" _ipp._tcp local.   # the TXT record
 |---|---|---|---|
 | macOS 26 print path (CUPS `-m everywhere` queue, same as the print dialog) | `image/urf` (Apple Raster) | sGray 8-bit, 4960×7015 px at 600 dpi for A4 | With `RS300-600` advertised it rendered at **300 dpi for normal quality** and 600 dpi only for high; hence we advertise `RS600` only |
 | Any client, PNG/JPEG | `image/png`, `image/jpeg` | PAPPL rasterises at 600 dpi sGray | scaled to fit the page |
+| iOS 26 through the finished pipeline (M6) | `image/urf` | 4960×7015 sGray, cropped to 4750×6808 at (104,104) | 53 bands, 440 KB, 1.1 s; printed perfectly on 2026-09-02 (v0.3) |
+| macOS 26, printer added in System Settings as AirPrint (M6) | `image/urf` | same geometry, 2 pages | 69 bands, 619 KB, 1.9 s; printed fine. Chrome's own print dialog lists only added printers; the system dialog (⌥⌘P) shows Bonjour printers under Other Printers |
 | iOS 26 (iPhone, Share → Print) | `image/urf` | sGray 8-bit, 4960×7015 px at 600 dpi for A4 | connects over IPv6 link-local and IPv4, upgrades the connection to TLS (`TLS=1.2` in TXT), then Print-Job/Send-Document with gzip; job completes in under a second |
 
 Both Apple clients open several connections (Get-Printer-Attributes, then the job, then
-Get-Job-Attributes polling until completion). With the capture device the job completes at once,
-so the phone shows nothing but a finished job; that is expected until M6 wires the USB device.
+Get-Job-Attributes polling until completion). With a file device the job completes at once, so
+the phone shows nothing but a finished job.
 
 Apple Raster jobs are streamed by PAPPL straight from the connection to our raster callbacks;
 there is no spool file. The decoded page is what we capture (`server --capture DIR` writes
 `job-NNN-pN.pgm`), and it is exactly the input our raster pipeline will get.
 
+## From job options to the printer (M6, `src/app/app.c`, `src/app/jobmap.c`)
+
+PAPPL parses the IPP job and calls our raster callbacks with the options and one line at a
+time. The mapping is pure and unit-tested (`tests/unit/test_jobmap.c`):
+
+| IPP | value | what we do |
+|---|---|---|
+| `print-quality` | draft | Draft preset (Bayer 8×8, 75 % coverage) whatever the content |
+| `print-content-optimize` | text | Text preset (threshold), at normal and high quality |
+| `print-content-optimize` | photo | Photo preset (Floyd–Steinberg) |
+| `print-quality` | normal, other content | Normal preset (blue noise) |
+| `print-quality` | high, other content | Photo preset |
+| `media` / `media-col` size | any of the 14 sizes | QPDL paper code and page header from the media table |
+| `media-source` | `manual` / `main` | feeder 2 / 1 in the page header |
+| `media-type` | stationery, -heavyweight, -lightweight, -preprinted, cardstock, labels, envelope | `@PJL SET PAPERTYPE = OFF, THICK, THIN, USED, CARD, LABEL, ENV` |
+| `copies` | n | n goes into the page header and end-of-page records; the printer repeats the page (three sheets for copies 3, measured 2026-09-02) |
+
+**Geometry.** iOS and macOS send the whole page (A4: 4960×7015 px at 600 dpi); the vendor
+filter sent only the PPD's imageable area (4750×6808) and the printer puts band pixel (0,0) at
+that area's top-left corner. So a full-page raster is cropped by the PPD margins (A4 12.5 pt =
+104 px all round; Letter 12.24 pt left and 11.94 pt top), a raster that is already the
+imageable area is used as it is, and nothing wider or taller than the imageable area is ever
+sent. The margins per size come from the PPD's `ImageableArea` and reproduce the vendor's
+raster size for all 14 sizes.
+
+**Formats.** sGray 8-bit (what Apple clients send), the CUPS "K" 8-bit raster (what the vendor
+filter consumed; PAPPL accepts it as `image/pwg-raster`, which is how the integration test
+prints without hardware), and 1-bit black. A page rendered at a resolution other than 600 dpi
+is refused; only 600 is advertised.
+
+**Status.** Between jobs PAPPL asks the driver's status callback at most once a second; it
+opens the USB device, reads the port status byte and sets `printer-state-reasons`
+(`media-empty`, `offline`, `other`); a printer that cannot be opened is `offline`.
+
 ## Things that bit us
+
+- **PAPPL's logger is its own printf.** `papplLogJob` understands `%d %u %x %s %p %f` and the
+  like but not the `z` length modifier; `%zu` crashed the server. Format sizes into a string
+  first.
 
 - **`print-color-mode=color` from a mono printer's clients.** Advertising `srgb_8` in
   `pwg-raster-document-type-supported` makes macOS's driverless PPD generator default to RGB and

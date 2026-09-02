@@ -49,13 +49,18 @@ page looks like on paper is ours.
 - Apple-specific code (launchd, Unified Logging, IOKit) lives in adapters under `service/`.
 - One process owns the USB device; the installer removes the vendor CUPS queue (ADR-006).
 
-## What exists today (M1)
+## What exists today (M6)
 
-- `usb/`: transport verified on the hardware; a captured vendor job replayed through it printed.
-- `qpdl/`: records, job walker, 0x11 decoder, band layout transform. The encoder in M5 is the
-  inverse of this verified code.
-- `cli/`: `probe`, `send`, `decode`.
-- Not yet: PAPPL front end (M2), raster and halftone (M3), encoders (M4, M5), service (M7).
+The diagram above is now the running code. `m2022-airbridge server` is the daemon (still
+started by hand; launchd comes in M7): PAPPL receives the job, our callbacks in `src/app/app.c`
+run each line through `raster/` (gray, crop to the imageable area, tone), `halftone/` (the
+preset chosen from the job's quality and content options) and `qpdl/` (bands, 0x11, records),
+and the bytes reach the printer through the `m2022usb://` device scheme over `usb/`. The same
+modules serve the command line: `encode` builds a job from a file, `send` writes it, `decode`
+explains any job byte by byte, `render` shows what a halftone does.
+
+Not yet: the launchd service and installer (M7), the reliability soak (M8), status details,
+manual duplex and 1200 dpi (M9), the quality calibration (M10).
 
 ## What this teaches
 

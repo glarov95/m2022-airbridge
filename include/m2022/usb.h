@@ -24,6 +24,7 @@ enum {
     M2022_USB_EAMBIGUOUS = -1001,  /* more than one device matches; give a serial */
     M2022_USB_ENOENDPOINT = -1002, /* no bulk endpoint of the requested direction */
     M2022_USB_EINVAL = -1003,
+    M2022_USB_ETIMEOUT = -7, /* libusb's LIBUSB_ERROR_TIMEOUT, passed through by read/write */
 };
 
 /* GET_PORT_STATUS bits. */

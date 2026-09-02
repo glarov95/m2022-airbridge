@@ -62,13 +62,15 @@ target_compile_options(m2022_cups PRIVATE -Wno-deprecated-declarations)
 add_library(m2022_qpdl STATIC qpdl/records.c qpdl/walk.c qpdl/codec11.c qpdl/band.c qpdl/encode.c)
 target_link_libraries(m2022_qpdl PUBLIC m2022_common)
 
-# Media table shared by the application (PWG names) and the encoder (QPDL codes). Pure.
-add_library(m2022_media STATIC app/media.c)
-target_link_libraries(m2022_media PUBLIC m2022_common)
+# Media table shared by the application (PWG names) and the encoder (QPDL codes), and the
+# mapping from IPP job options to presets, PJL values and page geometry. Pure.
+add_library(m2022_media STATIC app/media.c app/jobmap.c)
+target_link_libraries(m2022_media PUBLIC m2022_common m)
 
-# The Printer Application: PAPPL system, driver data and callbacks (static PAPPL).
-add_library(m2022_app STATIC app/app.c)
-target_link_libraries(m2022_app PUBLIC m2022_common m2022_media pappl::pappl)
+# The Printer Application: PAPPL system, driver data, the print pipeline behind the raster
+# callbacks, and the USB device scheme (static PAPPL).
+add_library(m2022_app STATIC app/app.c app/usbdev.c)
+target_link_libraries(m2022_app PUBLIC m2022_common m2022_media m2022_qpdl m2022_halftone m2022_usb pappl::pappl)
 
 add_executable(m2022-airbridge cli/main.c cli/cmd_probe.c cli/cmd_send.c cli/cmd_decode.c cli/cmd_server.c cli/cmd_render.c cli/cmd_encode.c cli/pipeline.c)
 target_link_libraries(m2022-airbridge PRIVATE m2022_usb m2022_cups m2022_qpdl m2022_app m2022_halftone)

@@ -2,7 +2,8 @@
  * server [--port N] [--name NAME] [--capture DIR] [--device URI] [--spool DIR] [--log FILE]
  *        [--debug] [--no-tls]
  *
- * Run the Printer Application in the foreground until Ctrl-C.
+ * Run the Printer Application in the foreground until Ctrl-C. The device is the USB printer
+ * unless --device names a file:// URI (a dry run that keeps the job on disk).
  */
 #include "cli.h"
 #include "m2022/app.h"
@@ -37,7 +38,9 @@ int cmd_server(int argc, char **argv)
             fprintf(stderr, "server: unknown option '%s'\n", argv[i]);
             fprintf(stderr, "Usage: m2022-airbridge server [--port N] [--name NAME] "
                             "[--capture DIR] [--device URI] [--spool DIR] [--log FILE] "
-                            "[--debug] [--no-tls]\n");
+                            "[--debug] [--no-tls]\n"
+                            "  --device: m2022usb://04e8:3321[?serial=S] (default, the USB "
+                            "printer) or file:///PATH (write the job to a file)\n");
             return 2;
         }
     }

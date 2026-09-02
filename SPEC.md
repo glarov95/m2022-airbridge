@@ -572,6 +572,8 @@ Wire M3–M5 behind the PAPPL raster callbacks; replace the `capture` device wit
 
 Acceptance: blank page, black square, lines, text, and the test sheet print correctly from the iPhone and from the Mac with no vendor code on the machine. This is **v0.3**.
 
+**Done 2026-09-02 (v0.3).** Raster callbacks in `src/app/app.c` (crop to the PPD imageable area, tone, halftone by preset, job encoder, device; copies through the page records, which the printer honours: question 11), the `m2022usb://` PAPPL device scheme over `usb/`, the job-option mapping in `src/app/jobmap.c` (unit-tested; geometry verified against all 14 vendor rasters), and an integration test that prints over IPP into a file device without hardware. The black square printed through the server, then a page from the iPhone: perfect; the Mac, with the printer added as an AirPrint printer in System Settings, printed a two-page document. The rest of the test sheet follows in M8's soak.
+
 ### M7 — Service, installer, doctor
 
 Per 6.7–6.9. Samsung queue removed and backed up; LaunchDaemon; dedicated user; `doctor`; uninstall with rollback.
@@ -746,10 +748,10 @@ Rules:
 5. Which of the observed PJL `SET` lines (`XIGNOREFF`, `RESOLUTION`, `BITSPERPIXEL`, `PAPERTYPE`, `DUPLEX`, `BINDING`) the printer requires versus ignores.
 6. macOS 26 answered 2026-09-02: Apple Raster (`image/urf`), sGray 8-bit; resolution follows print quality when several are advertised (300 for normal, 600 for high), so we advertise `RS600` only. iOS 26 answered the same day: Apple Raster, sGray 8-bit, 600 dpi, over a TLS-upgraded connection. iPadOS not tested separately (same stack).
 7. Answered 2026-09-02: yes. `probe` and `send` claim interface 0 as a normal user (ADR-009 verified).
-8. Does the printer answer PJL `INFO STATUS` / `USTATUS` on bulk IN?
+8. Does the printer answer PJL `INFO STATUS` / `USTATUS` on bulk IN? (The port status byte already gives paper-out and error; M6 maps it to printer-state-reasons.)
 9. Does any 1200 dpi mode print cleanly?
-10. Toner level: CUPS shows `marker-levels = 48`, so yes; through which channel?
-11. Does the printer honour the page-footer copies field, or must pages be repeated as CUPS does?
+10. Toner level: CUPS shows `marker-levels = 48`, so yes; through which channel? Narrowed 2026-09-02: the vendor's `commandtosec` filter (PPD `*cupsCommands: "ReportLevels"`) reported 46 % without writing anything to the print pipe; it links IOKit and carries the strings `UsbDeviceRequest: EP0 command(0x%x, 0x%x, 0x%x)`, `Received Raw Code: 8 bytes` and `@PJL LITESMSTATUS`, so the level comes over a vendor-specific USB control request on endpoint 0 with an 8-byte answer. M9 finds the request (candidates: replay the filter under a USB trace, or probe vendor requests) and publishes the level through PAPPL's supplies API, which is what the Mac's Supply Levels panel and the iPhone read.
+11. Answered 2026-09-02: yes. The black square with copies 3 in the page header and footer printed three sheets; the Printer Application puts the job's copies there and sends the page once.
 12. Answered 2026-09-02: the vendor changes the offset table per band, and the black-square job with 3 different tables printed; any table works. Our own per-band tables printed the native black square and text page correctly.
 13. Answered 2026-09-02: yes. The 743 KB Floyd–Steinberg photo page (largest captured vendor job: 521 KB) was written in 72 ms and printed correctly. Page size is a USB-bandwidth matter only.
 
@@ -761,7 +763,7 @@ Rules:
 |---|---|
 | v0.1 | A captured vendor job prints through our USB transport (`send`). |
 | v0.2 | iPhone, iPad, and Mac discover the Printer Application and their jobs are captured as raster with the expected parameters. |
-| v0.3 | The test sheet prints from the iPhone with no vendor code on the machine. |
+| v0.3 | The test sheet prints from the iPhone with no vendor code on the machine. ✓ 2026-09-02: a phone page printed perfectly through the whole pipeline; the full test sheet is M8's soak. |
 | v1.0 | Installed service; all hardware and reliability tests pass; the vendor driver is deleted from the Mac; a week of daily use without intervention. |
 | v1.5 | Normal and Text presets score at or above the vendor driver on the test sheet scans. |
 | v2.0 | Server-side PDF rendering, Linux/Raspberry Pi build of the same binary, and any presets that measurably beat the vendor driver. |

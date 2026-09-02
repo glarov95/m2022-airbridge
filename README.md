@@ -10,16 +10,14 @@ driver from the bytes up is a good way to learn how printing actually works.
 
 ## Status
 
-**M5 complete.** The printer's language is fully decoded and verified against 42 captured
-vendor jobs; a captured job replayed through our own USB transport prints (v0.1); the Printer
-Application runs and receives Apple Raster jobs from iPhone and Mac (v0.2); the raster and
-halftone pipeline exists, measured against the vendor's own output (text: 99.99 % pixel
-agreement); our encoder for the printer's 0x11 band compression re-encodes every vendor
-band exactly, in 0.76 of the vendor's bytes; and the job encoder produces complete printer
-jobs whose page headers are byte-identical to the vendor's for all 14 paper sizes. **The
-first native print is on paper:** `encode` + `send` printed the test pages with no vendor code
-or bytes anywhere in the path. Next: M6 wires the pipeline behind the IPP server so the
-iPhone and the Mac print for real (v0.3). See [PROGRESS.md](PROGRESS.md).
+**M6 complete, v0.3: the iPhone and the Mac print.** The printer's language is fully decoded and
+verified against 42 captured vendor jobs; our raster and halftone pipeline is measured against
+the vendor's output (text: 99.99 % pixel agreement); our 0x11 band encoder produces smaller
+streams than the vendor's on every band; our job encoder's page headers are byte-identical for
+all 14 paper sizes; and the Printer Application now takes an Apple Raster job from an iPhone,
+crops it to the printable area, halftones and encodes it, and writes it to the printer over
+USB. Nothing from the vendor runs anywhere in that path. Next: M7 makes it a service that
+starts with the Mac. See [PROGRESS.md](PROGRESS.md).
 
 | Milestone | What it delivers |
 |---|---|
@@ -28,7 +26,7 @@ iPhone and the Mac print for real (v0.3). See [PROGRESS.md](PROGRESS.md).
 | M3 ✅ | raster ingest, tone curve, five halftone methods, presets |
 | M4 ✅ | 0x11 band codec encoder with per-band offset tables, smaller output than the vendor's |
 | M5 ✅ | job encoder and `encode` command; first native page printed |
-| M6 | iPhone and Mac print through the Printer Application (v0.3) |
+| M6 ✅ | iPhone and Mac print through the Printer Application (v0.3) |
 | M7–M8 | launchd service, installer, reliability soak (v1.0) |
 | M9–M11 | status reporting, print quality program, signed release |
 
@@ -69,7 +67,8 @@ Hardware tests need the printer switched on and print a page: `ctest --test-dir 
 ./build/src/m2022-airbridge probe --json
 ./build/src/m2022-airbridge send JOB.spl     # write a printer-native job over USB
 ./build/src/m2022-airbridge decode JOB.spl --pbm out   # explain a job; pages to out-p1.pbm ...
-./build/src/m2022-airbridge server --capture DIR       # run the Printer Application (port 8000)
+./build/src/m2022-airbridge server                     # run the Printer Application on the USB printer (port 8000)
+./build/src/m2022-airbridge server --device file:///tmp/job.spl   # dry run: the job goes to a file
 ./build/src/m2022-airbridge render IN.pgm --preset photo --out page.pbm   # halftone a page
 ```
 

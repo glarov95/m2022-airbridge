@@ -33,6 +33,26 @@ SPEC.md 16. CUPS prepends `SERN:` from the USB serial when it shows the same str
 - **Status mapping.** Paper empty → `media-empty`, not selected → `offline`, error → `other`.
   Richer states (jam, cover open, toner) are not in the port status byte; SPEC.md M9.
 
+## The PAPPL device scheme (M6, `src/app/usbdev.c`)
+
+PAPPL talks to printers through device URIs. Ours is `m2022usb://04e8:3321[?serial=S]`,
+registered with `papplDeviceAddScheme2` and backed by this transport: open claims the printer
+interface, write loops over bulk transfers with a 60 s timeout (the printer stalls the pipe
+while its buffer is full), read polls the bulk IN endpoint for 250 ms, status turns the port
+status byte into `printer-state-reasons`, and the device-ID callback returns the IEEE 1284
+string. PAPPL opens the device for each job and, between jobs, briefly for status. The
+`file://` scheme that PAPPL ships remains available for dry runs (`server --device
+file:///tmp/job.spl`), which is what the integration test uses.
+
+## Supply levels (open, M9)
+
+The vendor driver reports the toner level (46 % on 2026-09-02) through its `commandtosec`
+filter, which never touches the print pipe: the binary links IOKit and contains
+`UsbDeviceRequest: EP0 command(0x%x, 0x%x, 0x%x)`, `Received Raw Code:` with 8 bytes, and
+`@PJL LITESMSTATUS`. So the level is a vendor-specific control request on endpoint 0, not a
+class request and not a PJL exchange on the bulk pipes. Once M9 has the request, the level
+goes to PAPPL's supplies API and from there to the Mac's Supply Levels panel and the phone.
+
 ## Commands
 
 ```sh

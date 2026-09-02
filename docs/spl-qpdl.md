@@ -104,7 +104,9 @@ Band height is 128 in every band, including the last one on the page.
 
 ### 2.3 End of page, type 0x01, 3 bytes
 
-`01 00 01`: copies (BE16). The vendor filter always writes 1 and lets CUPS repeat pages.
+`01 00 01`: copies (BE16). The vendor filter always writes 1 and lets CUPS repeat pages. The
+printer honours the field: our black square with copies 3 (here and in the page header) came
+out three times (2026-09-02).
 
 ### 2.4 End of job, type 0x09, 1 byte
 
@@ -315,11 +317,11 @@ state) is what lets the same code sit behind an IPP server later without bufferi
 ## 7. Still unknown (hardware questions, SPEC.md 16)
 
 - Which PJL `SET` lines the printer requires.
-- Whether the printer honours the page-footer copies field.
 - What `PacketSize 512` in SpliX refers to; nothing in the stream is 512-aligned.
 - Whether 1200 dpi prints cleanly.
 
-Answered: any offset table is accepted (the vendor changes it per band, the black-square job
+Answered: the copies field is honoured (three sheets for copies 3, 2026-09-02); any offset
+table is accepted (the vendor changes it per band, the black-square job
 with three different tables printed, and so did our own per-band tables); the printer takes
 pages far larger than the vendor ever sent (our 743 KB Floyd–Steinberg photo page printed
 correctly; the largest captured vendor job is 521 KB).
