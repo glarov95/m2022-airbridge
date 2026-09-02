@@ -19,6 +19,7 @@ static int usage(FILE *out)
           "  decode FILE [options] explain a captured SPL/QPDL job; --pbm PREFIX writes pages\n"
           "  server [options]      run the Printer Application in the foreground\n"
           "  render IN [options]   halftone a PGM or CUPS raster into a PBM (--preset, --method)\n"
+          "  encode IN [options]   build a complete printer job (.spl) from a PGM, PBM or CUPS raster\n"
           "  version               print the version and exit\n"
           "  help                  show this help\n",
           out);
@@ -54,6 +55,9 @@ int main(int argc, char **argv)
     }
     if (strcmp(cmd, "render") == 0) {
         return cmd_render(argc - 2, argv + 2);
+    }
+    if (strcmp(cmd, "encode") == 0) {
+        return cmd_encode(argc - 2, argv + 2);
     }
     fprintf(stderr, "m2022-airbridge: unknown command '%s'\n", cmd);
     return usage(stderr);

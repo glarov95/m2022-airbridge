@@ -5,44 +5,44 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Where we are
 
-- **Milestone:** M4 complete. The 0x11 band codec now has an encoder with a per-band
-  offset-table choice: every vendor band re-encodes exactly in 0.76 of the vendor's bytes, and
-  our own halftones round-trip through it. Next: M5, the QPDL encoder and the `encode` command.
+- **Milestone:** M5 complete, and the first native print is on paper: the black square and
+  the small-text page, produced by `encode` from our halftone, our band codec and our job
+  encoder, sent with `send`, printed correctly on 2026-09-02. No vendor code or bytes were
+  involved. Next: M6, wiring the pipeline behind the PAPPL raster callbacks and replacing the
+  capture device with the USB transport, so the iPhone and the Mac print for real (v0.3).
 - **Last update:** 2026-09-02.
 - **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD). The vendor CUPS
   queue `Samsung_M2020_Series` is still installed and idle; it stays until M7 removes it.
 
 ## Next up
 
-**M5 — QPDL encoder and `encode` command** (SPEC.md 6.4; docs/spl-qpdl.md sections 1 and 2;
-record serialisers already exist in `src/qpdl/records.c`, the codec in `src/qpdl/codec11.c`,
-media codes in `src/app/media.c`).
+**M6 — First native print from the clients (v0.3)** (SPEC.md 5, 6.1, 6.6; docs/ipp-airprint.md;
+docs/architecture.md; `src/app/app.c` has the driver data and the capture callbacks).
 
-1. `src/qpdl/encode.c` behind `include/m2022/qpdl.h`: a job-options struct (media from
-   `m2022/media.h`, feeder auto/manual, media type as the PJL `PAPERTYPE` string, copies,
-   manual duplex with binding, resolution 600 or 1200, skip blank pages) and a streaming API:
-   begin job (PJL envelope exactly as the vendor's in docs/spl-qpdl.md section 1, with the
-   `SERVICEDATE` passed in by the caller so tests are deterministic), begin page (0x00 record
-   from the media table: paper code, width and height in 1/300 in, halved unit at 1200 dpi),
-   add band (rows → `m2022_qpdl_rows_to_band` → `m2022_codec11_choose_table` →
-   `m2022_codec11_encode` → 0x0C record; all-white bands omitted), end page (0x01, copies 1),
-   end job (0x09 + UEL). Output through a write callback; buffers sized once per page.
-2. Band geometry: band width = ceil(raster width / 256) × 256, rows padded with white on the
-   right, 128-line bands with the last one padded with white lines. Band numbers count from 0
-   at the top of the printable area, including omitted blank bands.
-3. `m2022-airbridge encode IN.pgm|IN.pbm|IN.ras[.gz] [--preset|--method ...] [--media A4]
-   [--copies N] [--out FILE]`: raster → tone → halftone (M3) → bands → job; share the option
-   parsing with `render`. `decode` must explain the result byte by byte.
-4. Tests: encode the vendor's input rasters (`fixtures/oracle/samsung/*.ras.gz`) and compare
-   with the vendor's `.spl` structurally: same PJL lines except `SERVICEDATE` and the OS
-   comment, byte-identical page header, same band numbers and widths, same set of omitted
-   bands, every band decoding to exactly our halftone output, the whole job accepted by
-   `m2022_qpdl_walk`; the media sweep gives 14 page headers to compare byte for byte with
-   `fixtures/oracle/samsung/media/*.spl`. The black square through the Text preset should
-   decode to the vendor's identical bitmap.
-5. Hardware (only when the user says the printer is on): `send` our own `encode` output of
-   the black square, then the text page; that is the first native print and the start of M6.
-   Also send the Floyd–Steinberg photo page to answer SPEC.md question 13 (page size limit).
+1. Job pipeline in `src/app/`: in `rstartjob` pick the preset from `print-quality` and
+   `print-content-optimize` (draft → Draft, normal → Normal, high → Photo; text content →
+   Text), build the `m2022_qpdl_job_t` from the job's media (`m2022_media_by_pwg`), media
+   source (auto/manual), media type (map PWG names to the vendor's PAPERTYPE strings, default
+   OFF), copies, today's date, the producer string; open the device; `m2022_qpdl_begin_job`
+   with a sink that writes to the PAPPL device (`papplDeviceWrite`). In `rstartpage`
+   `m2022_qpdl_begin_page` with the raster width and a workspace sized once; in `rwriteline`
+   convert the line (sGray 8 / black 1) with `m2022_raster_line_to_gray`, tone, halftone,
+   `m2022_qpdl_write_line`; `rendpage` → `m2022_qpdl_end_page`; `rendjob` →
+   `m2022_qpdl_end_job`. Keep the capture callbacks behind `--capture` for debugging.
+2. Geometry: the client raster is the full page or the printable area at 600 dpi; compare the
+   header's width/height and the media size with what `encode` used for the vendor rasters
+   (4750×6808 for A4) and fit with `m2022_raster_fit_line` when the client sends the full
+   page (margins 12.5 pt). Measure what iOS and macOS actually send (docs/ipp-airprint.md has
+   the captured headers).
+3. USB device for PAPPL: a `pappl_device_t` scheme "m2022usb://" backed by `src/usb/` (open,
+   write, status), or PAPPL's own `usb://` scheme if it works unprivileged on macOS 26; the
+   `server --device` option selects it. Job status: port status bits → printer-state-reasons.
+4. Tests: a unit test for the option mapping (quality/content → preset, PWG media type →
+   PAPERTYPE); an integration test that runs `server` with a file device, submits the captured
+   Apple Raster jobs from `artifacts/capture` (or fixtures) with `ipptool`/`lp`, and checks the
+   produced job with `decode` (page count, band width, bands non-empty). Hardware: print the
+   test pages from the iPhone and the Mac (only when the user says the printer is on).
+5. Then: `docs/architecture.md` "data path today" becomes the real one; README status v0.3.
 
 ## Milestones
 
@@ -52,9 +52,9 @@ media codes in `src/app/media.c`).
 | M1 | Repository, USB transport, replay, decoder | done, v0.1 | 2026-09-02 | 1b73582, 670be60 |
 | M2 | PAPPL skeleton with capture device | done, v0.2 | 2026-09-02 | a8c6b5b + follow-up |
 | M3 | Raster and halftone pipeline | done | 2026-09-02 | 5e18397 |
-| M4 | Band codec 0x11 encoder | done | 2026-09-02 | (this commit) |
-| M5 | QPDL encoder and `encode` | next | | |
-| M6 | First native print (v0.3) | todo | | |
+| M4 | Band codec 0x11 encoder | done | 2026-09-02 | f22d645 |
+| M5 | QPDL encoder and `encode`, first native print | done | 2026-09-02 | (this commit) |
+| M6 | Native print from iPhone and Mac (v0.3) | next | | |
 | M7 | Service, installer, doctor | todo | | |
 | M8 | Reliability soak (v1.0) | todo | | |
 | M9 | Status, manual duplex, 1200 dpi experiment | todo | | |
@@ -71,6 +71,11 @@ media codes in `src/app/media.c`).
   bytes and never more for a band. Ordered screens compress 4× better than the vendor's
   output, blue noise costs 2–2.5×, Floyd–Steinberg 6.8× (740 KB photo page): docs/spl-qpdl.md
   3.3–3.4, SPEC.md risk 12 and question 13.
+- Our job encoder writes the vendor's envelope and records: page headers byte-identical for
+  all 14 sizes and at 1200 dpi (paper size = points × 300/72 rounded half up), same band
+  numbers as the vendor for the black square and the text page. Both printed correctly from
+  `encode` + `send` on 2026-09-02: the first native print. A 743 KB Floyd–Steinberg photo
+  page (largest vendor job: 521 KB) printed correctly too: page size is bandwidth only.
 - USB access works unprivileged with libusb; the device ID advertises `URF`: `docs/usb.md`.
 - The vendor driver is Intel-only and stops working with macOS 28 (fall 2027). Its package is
   backed up under `artifacts/vendor-driver-backup/` (gitignored: keep a copy elsewhere too).
@@ -79,6 +84,16 @@ media codes in `src/app/media.c`).
 
 ## Session log
 
+- **2026-09-02 (M5)** — `src/qpdl/encode.c`: streaming job encoder (begin job / page, write
+  line, end page / job) with the vendor's PJL envelope, page header from the media table,
+  blank-band omission, per-band 0x11 tables, `m2022_qpdl_paper_dots` (rounding fixed: half
+  up, verified on all 14 sizes). `encode` command; `render` and `encode` share
+  `src/cli/pipeline.c` (input loading, halftone options). `test_qpdl_encode`: envelope text,
+  all media headers against the sweep, 1200 dpi header, band mechanics, errors, whole pages
+  against the vendor (black square identical, text 99.99 %). Hardware: native black square
+  and text page printed correctly (first native print); the 743 KB Floyd–Steinberg photo
+  page printed correctly as well (SPEC question 13 answered). Hardware
+  test `hw_native_black_square` added. 15 suites pass.
 - **2026-09-02 (M4)** — `m2022_codec11_encode` (greedy longest match over the 64 table
   distances, vendor raw-prefix rule, little-endian header, payload checksum),
   `m2022_codec11_encode_bound`, `m2022_codec11_choose_table` (3-byte hash of recent positions

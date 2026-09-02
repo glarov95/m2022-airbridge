@@ -299,28 +299,24 @@ Output: 1-bit bitmap, 1 = toner.
 
 ### 6.4 QPDL encoder (`qpdl/`)
 
-Public interface (unchanged in spirit from v1):
+Public interface (as built in M5; the v1 sketch took whole pages, but PAPPL delivers lines, so the encoder streams them and keeps one band of state):
 
 ```c
-typedef struct {
-    int width_px, height_px;      /* 1-bit page bitmap */
-    int x_dpi, y_dpi;
-    const uint8_t *bits;          /* packed, 1 = black */
-    size_t bytes_per_row;
-} m2022_page_t;
+typedef struct {            /* m2022_qpdl_job_t */
+    uint8_t paper_code;  int paper_width_pt, paper_height_pt;
+    unsigned dpi;        uint8_t feeder;      const char *paper_type;
+    m2022_qpdl_duplex_t duplex;  bool skip_blank_pages;  uint16_t copies;
+    const char *service_date, *producer;
+} m2022_qpdl_job_t;
 
-typedef struct {
-    m2022_media_t   media;        /* size + source + type */
-    m2022_quality_t quality;
-    bool            toner_save;
-    int             copies;
-    bool            manual_duplex_second_pass;
-} m2022_job_options_t;
-
-int m2022_encode_job(const m2022_job_options_t *opt,
-                     const m2022_page_t *pages, size_t n_pages,
-                     m2022_write_cb write, void *ctx);
+int m2022_qpdl_begin_job(m2022_qpdl_encoder_t *e, const m2022_qpdl_job_t *job, m2022_qpdl_sink_fn sink, void *ctx);
+int m2022_qpdl_begin_page(m2022_qpdl_encoder_t *e, uint32_t width, void *workspace, size_t workspace_bytes);
+int m2022_qpdl_write_line(m2022_qpdl_encoder_t *e, const uint8_t *bits);   /* 1 = black */
+int m2022_qpdl_end_page(m2022_qpdl_encoder_t *e);
+int m2022_qpdl_end_job(m2022_qpdl_encoder_t *e);
 ```
+
+Quality, toner save and edge enhancement are not encoder options: they live in the halftone presets (6.3), exactly as they live in the vendor's halftoner (2.8).
 
 Responsibilities (layouts confirmed in section 2.8 and `docs/spl-qpdl.md`):
 
@@ -566,6 +562,8 @@ Per 6.4, plus `decode`. The band-width rule and paper codes are already derived 
 
 Acceptance: `decode` explains every byte of a vendor fixture; our `encode` of the same page matches the vendor structurally, and byte-exactly for the deterministic parts; SpliX output decodes with our decoder.
 
+**Done 2026-09-02.** Streaming encoder (`m2022_qpdl_begin_job` … `end_job`, 6.4) and the `encode` command. Page headers byte-identical to the vendor's for all 14 sizes and at 1200 dpi; the same PJL `SET` lines; the black square gives the vendor's 11 band numbers with a pixel-identical picture, the text page the vendor's 35 band numbers at 99.99 % agreement. **First native print:** both pages, produced by `encode` and written with `send`, printed correctly; the printer also accepted a 743 KB Floyd–Steinberg photo page. SpliX output has not been decoded (no SpliX build on this Mac; the SpliX document was the reference).
+
 Teaches: proprietary printer languages, PJL, reverse engineering from fixtures with a reference implementation.
 
 ### M6 — First native print
@@ -735,7 +733,7 @@ Rules:
 | 9 | macOS 28 arrives before v1.0 | schedule | v1.0 target is spring 2027; hold the host on macOS 27 if needed |
 | 10 | 1200 dpi prints badly on this engine | medium | the vendor emits it in Best mode, so the format is known; the M9 hardware test decides |
 | 11 | Scope creep from the learning goal | medium | learning exercises live in `docs/`, not in `src/`; milestones gate features |
-| 12 | Stochastic screens (blue noise, error diffusion) do not compress under 0x11: 2–7× the vendor's bytes per page, up to 740 KB for a photo | medium | measured in M4; M6 sends the Floyd–Steinberg photo page to find the printer's limit; fallbacks are the clustered screen for photos or a hybrid screen (M10) |
+| 12 | Stochastic screens (blue noise, error diffusion) do not compress under 0x11: 2–7× the vendor's bytes per page, up to 740 KB for a photo | closed | measured in M4; the 743 KB photo page printed correctly on 2026-09-02 (question 13), so this is bandwidth only: 72 ms over USB |
 
 ---
 
@@ -752,8 +750,8 @@ Rules:
 9. Does any 1200 dpi mode print cleanly?
 10. Toner level: CUPS shows `marker-levels = 48`, so yes; through which channel?
 11. Does the printer honour the page-footer copies field, or must pages be repeated as CUPS does?
-12. Answered 2026-09-02: the vendor changes the offset table per band, and the black-square job with 3 different tables printed; any table works.
-13. Does the printer accept pages far larger than the vendor ever sent? Our Floyd–Steinberg photo page is 740 KB of band payload; the largest captured job is 521 KB (1200 dpi text). M6 sends it.
+12. Answered 2026-09-02: the vendor changes the offset table per band, and the black-square job with 3 different tables printed; any table works. Our own per-band tables printed the native black square and text page correctly.
+13. Answered 2026-09-02: yes. The 743 KB Floyd–Steinberg photo page (largest captured vendor job: 521 KB) was written in 72 ms and printed correctly. Page size is a USB-bandwidth matter only.
 
 ---
 

@@ -10,13 +10,16 @@ driver from the bytes up is a good way to learn how printing actually works.
 
 ## Status
 
-**M4 complete.** The printer's language is fully decoded and verified against 42 captured
+**M5 complete.** The printer's language is fully decoded and verified against 42 captured
 vendor jobs; a captured job replayed through our own USB transport prints (v0.1); the Printer
 Application runs and receives Apple Raster jobs from iPhone and Mac (v0.2); the raster and
 halftone pipeline exists, measured against the vendor's own output (text: 99.99 % pixel
-agreement); and our encoder for the printer's 0x11 band compression re-encodes every vendor
-band exactly, in 0.76 of the vendor's bytes. Next: the QPDL encoder and `encode` command
-(M5), then the first native print (M6). See [PROGRESS.md](PROGRESS.md).
+agreement); our encoder for the printer's 0x11 band compression re-encodes every vendor
+band exactly, in 0.76 of the vendor's bytes; and the job encoder produces complete printer
+jobs whose page headers are byte-identical to the vendor's for all 14 paper sizes. **The
+first native print is on paper:** `encode` + `send` printed the test pages with no vendor code
+or bytes anywhere in the path. Next: M6 wires the pipeline behind the IPP server so the
+iPhone and the Mac print for real (v0.3). See [PROGRESS.md](PROGRESS.md).
 
 | Milestone | What it delivers |
 |---|---|
@@ -24,8 +27,8 @@ band exactly, in 0.76 of the vendor's bytes. Next: the QPDL encoder and `encode`
 | M2 ✅ | printer visible to iPhone/iPad/Mac; incoming raster captured |
 | M3 ✅ | raster ingest, tone curve, five halftone methods, presets |
 | M4 ✅ | 0x11 band codec encoder with per-band offset tables, smaller output than the vendor's |
-| M5 | QPDL encoder and `encode` command |
-| M6 | first page printed with no vendor code (v0.3) |
+| M5 ✅ | job encoder and `encode` command; first native page printed |
+| M6 | iPhone and Mac print through the Printer Application (v0.3) |
 | M7–M8 | launchd service, installer, reliability soak (v1.0) |
 | M9–M11 | status reporting, print quality program, signed release |
 
@@ -61,6 +64,8 @@ Hardware tests need the printer switched on and print a page: `ctest --test-dir 
 
 ```sh
 ./build/src/m2022-airbridge probe            # host, USB printers (device id, status), CUPS queues
+./build/src/m2022-airbridge encode fixtures/oracle/samsung/small-text-a4.ras.gz --preset text --out job.spl
+                                             # a complete printer job from a PGM, PBM or CUPS raster
 ./build/src/m2022-airbridge probe --json
 ./build/src/m2022-airbridge send JOB.spl     # write a printer-native job over USB
 ./build/src/m2022-airbridge decode JOB.spl --pbm out   # explain a job; pages to out-p1.pbm ...

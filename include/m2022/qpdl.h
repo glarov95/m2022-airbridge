@@ -48,6 +48,8 @@ enum {
     M2022_QPDL_ERECORD = -2006,    /* unknown record type */
     M2022_QPDL_ENOPJL = -2007,     /* no "@PJL ENTER LANGUAGE=QPDL" line */
     M2022_QPDL_EINVAL = -2008,
+    M2022_QPDL_ERANGE = -2009, /* page wider than 65280 px or taller than 255 bands */
+    M2022_QPDL_ESTATE = -2010, /* encoder call out of order (page without job, line without page) */
 };
 
 const char *m2022_qpdl_strerror(int err);
@@ -172,5 +174,77 @@ extern const uint16_t m2022_codec11_default_table[M2022_CODEC11_TABLE_ENTRIES];
  */
 void m2022_qpdl_band_to_rows(const uint8_t *band, size_t bytes_per_row, uint8_t *rows);
 void m2022_qpdl_rows_to_band(const uint8_t *rows, size_t bytes_per_row, uint8_t *band);
+
+/* ---- job encoder --------------------------------------------------------------------- */
+
+/*
+ * Writes a complete job the way the vendor filter does (docs/spl-qpdl.md 1, 2): the PJL
+ * envelope, one page header per page, a 0x0C record per non-blank 128-line band (column-major,
+ * 0x11-compressed with a per-band table), the end-of-page record, and the end-of-job byte
+ * followed by the UEL. Lines arrive one at a time as packed 1-bit rows, 1 = black, so a
+ * band-based caller (PAPPL delivers lines) never holds a whole page. Bytes go to a sink
+ * callback; the only memory is a per-page workspace the caller provides.
+ */
+
+enum { M2022_QPDL_FEEDER_AUTO = 1, M2022_QPDL_FEEDER_MANUAL = 2 };
+
+typedef enum {
+    M2022_QPDL_DUPLEX_OFF = 0,
+    M2022_QPDL_DUPLEX_MANUAL_LONG_EDGE,  /* @PJL SET DUPLEX = MANUAL, BINDING = LONGEDGE */
+    M2022_QPDL_DUPLEX_MANUAL_SHORT_EDGE, /* ..., BINDING = SHORTEDGE */
+} m2022_qpdl_duplex_t;
+
+typedef struct {
+    uint8_t paper_code;                  /* docs/spl-qpdl.md 2.1; the table is in m2022/media.h */
+    int paper_width_pt, paper_height_pt; /* the PPD PaperDimension, converted as the vendor does */
+    unsigned dpi;                        /* 600 or 1200 */
+    uint8_t feeder;                      /* M2022_QPDL_FEEDER_AUTO or _MANUAL */
+    const char *paper_type;   /* PJL PAPERTYPE value: OFF, NORMAL, THICK, THIN, BOND, ... */
+    m2022_qpdl_duplex_t duplex;
+    bool skip_blank_pages;    /* @PJL SET XIGNOREFF=ON */
+    uint16_t copies;          /* page header and end-of-page copies fields; the vendor writes 1 */
+    const char *service_date; /* "YYYYMMDD" for @PJL DEFAULT SERVICEDATE; NULL omits the line */
+    const char *producer;     /* text for a @PJL COMMENT line; NULL omits it */
+} m2022_qpdl_job_t;
+
+/* Sink for encoded bytes. Return 0, or a negative value that the encoder passes back. */
+typedef int (*m2022_qpdl_sink_fn)(void *ctx, const uint8_t *data, size_t len);
+
+typedef struct {
+    m2022_qpdl_job_t job;
+    m2022_qpdl_sink_fn sink;
+    void *sink_ctx;
+    uint32_t width;        /* raster width of the current page, pixels */
+    uint16_t band_width;   /* ceil(width / 256) * 256 */
+    size_t bytes_per_row;  /* band_width / 8 */
+    size_t row_bytes_used; /* (width + 7) / 8 */
+    uint32_t lines;        /* lines received on the current page */
+    unsigned band_number;  /* of the band being filled; blank bands count too */
+    uint8_t *rows, *band, *payload; /* slices of the page workspace */
+    size_t payload_cap;
+    bool in_job, in_page;
+    unsigned pages, bands_written, bands_blank;
+    size_t bytes_out;
+} m2022_qpdl_encoder_t;
+
+/* A4, 600 dpi, auto feeder, PAPERTYPE OFF, no duplex, one copy, no date, no producer. */
+void m2022_qpdl_job_default(m2022_qpdl_job_t *job);
+
+/* Page header paper size: points to 1/300 in (600 dpi) or 1/150 in (1200 dpi), rounded half
+ * up; reproduces the vendor's value for all 14 sizes (Env C5 459 pt -> 1913). */
+uint16_t m2022_qpdl_paper_dots(int points, unsigned dpi);
+
+/* Workspace a page of `width` pixels needs (rows, column-major band, payload). */
+size_t m2022_qpdl_encoder_workspace_bytes(uint32_t width);
+
+int m2022_qpdl_begin_job(m2022_qpdl_encoder_t *e, const m2022_qpdl_job_t *job,
+                         m2022_qpdl_sink_fn sink, void *sink_ctx);
+int m2022_qpdl_begin_page(m2022_qpdl_encoder_t *e, uint32_t width, void *workspace,
+                          size_t workspace_bytes);
+/* One packed row of (width + 7) / 8 bytes, 1 = black. Bits past `width` are ignored. */
+int m2022_qpdl_write_line(m2022_qpdl_encoder_t *e, const uint8_t *bits);
+/* Flushes a partial last band padded with white, writes the end-of-page record. */
+int m2022_qpdl_end_page(m2022_qpdl_encoder_t *e);
+int m2022_qpdl_end_job(m2022_qpdl_encoder_t *e);
 
 #endif /* M2022_QPDL_H */

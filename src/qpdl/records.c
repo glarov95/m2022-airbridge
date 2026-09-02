@@ -202,6 +202,10 @@ const char *m2022_qpdl_strerror(int err)
         return "no @PJL ENTER LANGUAGE line";
     case M2022_QPDL_EINVAL:
         return "invalid argument";
+    case M2022_QPDL_ERANGE:
+        return "page wider than 65280 pixels or taller than 255 bands";
+    case M2022_QPDL_ESTATE:
+        return "encoder call out of order";
     default:
         return "unknown error";
     }

@@ -74,7 +74,9 @@ Paper codes observed (SpliX names in parentheses where they differ):
 Paper width/height per size, in 1/300 in: A4 2479×3508, A5 1750×2479, B5-ISO 2079×2954,
 B5-JIS 2150×3038, Letter 2550×3300, Legal 2550×4200, Executive 2175×3150, US-Folio 2550×3900,
 Oficio 2550×4050, Postcard_S 1200×1800, EnvC5 1913×2704, EnvDL 1300×2600, Env10 1238×2850,
-EnvMonarch 1163×2250. These are floor(points × 300 / 72) of the PPD `PaperDimension`.
+EnvMonarch 1163×2250. These are the PPD `PaperDimension` points × 300 / 72, rounded half up
+(Env C5 459 pt → 1912.5 → 1913; A4 595 pt → 2479.17 → 2479); at 1200 dpi × 150 / 72
+(A4 → 1240 × 1754). `m2022_qpdl_paper_dots()` reproduces all 14 headers byte for byte.
 
 ### 2.2 Band, type 0x0C, 11-byte header + payload
 
@@ -230,8 +232,8 @@ A4 page against the vendor's output for the same input raster):
 Ordered screens repeat every few lines and columns, so they compress far better than even the
 vendor's screen. Blue noise and error diffusion do not repeat on purpose, and an LZ77 scheme
 has nothing to hold on to. The largest page in any captured job is 521 KB (1200 dpi text);
-whether the printer takes a 740 KB Floyd–Steinberg page is an M6 hardware question
-(SPEC.md 16, question 13). A photo preset that compresses better is an M10 topic.
+our 743 KB Floyd–Steinberg page printed correctly all the same (2026-09-02), so the cost is
+72 ms of USB time and nothing else. A photo preset that compresses better is an M10 topic.
 
 Speed, optimized build on this Mac, all bands of a page: 600 dpi text page (35 bands,
 2.6 MB of band data) chooses tables in 30 ms and encodes in 16 ms, 60 MB/s; the 1200 dpi
@@ -274,14 +276,50 @@ exactly the part we replace with our own.
 | photo A4 | 20 | 109 131 |
 | checkerboard A4 | 24 | 50 703 |
 
-## 6. Still unknown (hardware questions, SPEC.md 16)
+## 6. Our job encoder (M5)
+
+`m2022_qpdl_begin_job / begin_page / write_line / end_page / end_job` in `src/qpdl/encode.c`
+write a job the way the vendor filter does, one raster line at a time, so a band-based caller
+such as the PAPPL raster callbacks never holds a page:
+
+- **Envelope.** The UEL glued to `@PJL DEFAULT SERVICEDATE=<date>` (the caller passes the date;
+  tests use a fixed one), our own two `COMMENT` lines, then the same `SET` lines as the vendor
+  in the same order: `XIGNOREFF`, an empty line, `RESOLUTION`, `BITSPERPIXEL = 1` (600 dpi
+  only), `PAPERTYPE`, `DUPLEX` (+ `BINDING` for manual duplex), `ENTER LANGUAGE=QPDL`. Which
+  of them the printer needs is still open (question 5), so all are emitted.
+- **Page header** from the media table (`m2022/media.h`): paper code, size in dots as above,
+  copies, feeder, duplex bytes 0, QPDL version 3. Byte-identical to the vendor's for all 14
+  sizes and for the 1200 dpi header.
+- **Bands.** Rows are collected 128 at a time at the band width `ceil(width / 256) × 256`,
+  bits past the raster width masked white; an all-white band is skipped but still counted
+  (band numbers are positions on the page); a non-blank band goes through the column-major
+  transform, the per-band table choice and the 0x11 encoder, then a `0x0C` record. A partial
+  last band is padded with white lines. More than 255 bands (54 in at 600 dpi) is an error.
+- **Trailer.** `0x01` + copies, `0x09`, UEL.
+
+Measured against the vendor on its own input rasters (`tests/unit/test_qpdl_encode.c`): the
+black square gives the same 11 band records (numbers 21..31) with a pixel-identical picture in
+6 146 bytes against the vendor's 5 940; the text page the same 35 band numbers at 99.99 % pixel
+agreement in 220 577 bytes against 287 582. The same `SET` lines, the same page header.
+
+The `encode` command wraps it: `m2022-airbridge encode IN [halftone options] [--media A4]
+[--dpi 600|1200] [--source auto|manual] [--type OFF|THICK|...] [--duplex off|long|short]
+[--copies N] [--skip-blank] [--out JOB.spl]`; `decode` explains the result and `send` prints it.
+
+**What this teaches.** A printer language is mostly framing: a few fixed records around the
+compressed bands, and a PJL preamble that a firmware parses with little tolerance. Getting the
+bytes right came from fixtures, not documentation: the SpliX text has the record layouts, the
+captured jobs have the values. The streaming shape of the API (lines in, bytes out, one band of
+state) is what lets the same code sit behind an IPP server later without buffering pages.
+
+## 7. Still unknown (hardware questions, SPEC.md 16)
 
 - Which PJL `SET` lines the printer requires.
 - Whether the printer honours the page-footer copies field.
 - What `PacketSize 512` in SpliX refers to; nothing in the stream is 512-aligned.
 - Whether 1200 dpi prints cleanly.
-- Whether the printer takes pages far larger than the vendor ever sent (a Floyd–Steinberg
-  photo page is 740 KB of band payload; the largest captured job is 521 KB).
 
-Answered: any offset table is accepted (the vendor changes it per band, and the black-square
-job with three different tables printed).
+Answered: any offset table is accepted (the vendor changes it per band, the black-square job
+with three different tables printed, and so did our own per-band tables); the printer takes
+pages far larger than the vendor ever sent (our 743 KB Floyd–Steinberg photo page printed
+correctly; the largest captured vendor job is 521 KB).
