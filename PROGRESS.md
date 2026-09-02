@@ -166,6 +166,9 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Environment notes
 
+- Remote: `origin` = https://github.com/glarov95/m2022-airbridge (private, branch `main`,
+  created 2026-09-02 with `gh`). Push after each commit the user asks for.
+
 - Build: `export PATH=/opt/homebrew/bin:$PATH; cmake -S . -B build -G Ninja; cmake --build build;
   ctest --test-dir build --output-on-failure -LE hardware`
 - Hardware tests print pages: `ctest --test-dir build -L hardware` only with the printer on.
