@@ -1,0 +1,4 @@
+[submodule "third_party/pappl"]
+	path = third_party/pappl
+	url = https://github.com/michaelrsweet/pappl.git
+	ignore = untracked

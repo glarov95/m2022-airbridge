@@ -5,15 +5,24 @@ something is finished. The design is `SPEC.md`; the working rules are `CLAUDE.md
 
 ## Where we are
 
-- **Milestone:** M1 complete, **v0.1** reached (a captured vendor job printed through our USB
-  transport). M2 not started.
-- **Last update:** 2026-09-02, commit `670be60`.
+- **Milestone:** M2 in progress. The Printer Application runs: PAPPL 1.4.12 static, DNS-SD
+  registration with `_universal`, IPP attributes pass ipptool, web page serves, and a macOS
+  driverless queue prints into the capture device (Apple Raster, sGray 8-bit, 600 dpi).
+  Remaining for M2: the iPhone/iPad test and the Mac print-dialog check.
+- **Last update:** 2026-09-02.
 - **Hardware:** Samsung SL-M2022 on USB (04e8:3321, serial ZF45B8GF3C01YSD). The vendor CUPS
   queue `Samsung_M2020_Series` is still installed and idle; it stays until M7 removes it.
 
 ## Next up
 
-**M2 — Printer Application skeleton** (SPEC.md section 9 M2; driver data in 6.1; service in 6.7).
+**M2 acceptance, then M3.** Run the server (`./build/src/m2022-airbridge server --capture artifacts/capture`),
+print from an iPhone and an iPad to "Samsung M2022", open the Mac print dialog and confirm the
+printer is listed by Bonjour (not through the `M2022test` CUPS queue). Record format, resolution
+and colour space per client from `build/run/server.log` into `docs/ipp-airprint.md` and SPEC.md 16
+Q6; delete the `M2022test` queue (`lpadmin -x M2022test`). Then start M3 (raster + halftone) on
+the captured PGM pages in `artifacts/capture/`.
+
+Original M2 plan, kept for reference (SPEC.md section 9 M2; driver data in 6.1; service in 6.7):
 
 1. Add PAPPL **v1.4.12** as a git submodule at `third_party/pappl` and write
    `scripts/build-pappl.sh` that builds it with its autoconf into `build/pappl/` (dependencies
@@ -39,7 +48,7 @@ Start by reading SPEC.md sections 5, 6.1 and 6.7, then the PAPPL driver callback
 |---|---|---|---|---|
 | M0 | Environment probe and vendor capture | done | 2026-09-02 | 6e96237 |
 | M1 | Repository, USB transport, replay, decoder | done, v0.1 | 2026-09-02 | 1b73582, 670be60 |
-| M2 | PAPPL skeleton with capture device | next | | |
+| M2 | PAPPL skeleton with capture device | in progress (macOS verified, iOS pending) | | |
 | M3 | Raster and halftone pipeline | todo | | |
 | M4 | Band codec 0x11 encoder | todo | | |
 | M5 | QPDL encoder and `encode` | todo | | |
@@ -62,6 +71,14 @@ Start by reading SPEC.md sections 5, 6.1 and 6.7, then the PAPPL driver callback
   print quality, toner channel, raw URF over USB).
 
 ## Session log
+
+- **2026-09-02 (later)** — M2: PAPPL v1.4.12 submodule + `scripts/build-pappl.sh` (arm64 static;
+  configure defaults to universal, pinned via CFLAGS/LDFLAGS); `src/app/` with driver data per
+  SPEC 6.1 and capture callbacks; `server` command; media table shared with the encoder
+  (`src/app/media.c`, unit-tested against libcups). Measured: macOS sends Apple Raster sGray 8-bit;
+  resolution follows print quality when several are advertised (now 600 only); advertising srgb_8
+  makes macOS send print-color-mode=color (now gray only); PAPPL streams raster jobs (no spool
+  file); page indices are 0-based. `docs/ipp-airprint.md` written.
 
 - **2026-09-02** — Spec v2 written from a read-only probe. Fixture pages generated; vendor output
   captured for 9 pages × 2 sizes, 8 option variants and a 14-size media sweep; driver package

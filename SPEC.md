@@ -252,9 +252,9 @@ PAPPL 1.4.x provides the system, printer, and job objects. We provide a `pappl_p
 
 Driver data we declare (PAPPL derives `urf-supported`, `pwg-raster-document-*`, `media-col-database`, and the DNS-SD TXT record from it, so no hand-written TXT records):
 
-- `raster_types`: `PAPPL_PWG_RASTER_TYPE_SGRAY_8 | PAPPL_PWG_RASTER_TYPE_BLACK_1 | PAPPL_PWG_RASTER_TYPE_SRGB_24` (sRGB accepted and converted to gray so photo apps never get refused).
-- `resolutions`: 600×600 (default); 300×300 (Draft). 1200×1200 only when section 9 M9 proves it.
-- `color_supported`: monochrome only; `print-color-mode` = `monochrome`.
+- `raster_types`: `PAPPL_PWG_RASTER_TYPE_SGRAY_8 | PAPPL_PWG_RASTER_TYPE_BLACK_1`. Not sRGB: advertising `srgb_8` makes macOS's driverless PPD default to RGB and send `print-color-mode=color`, which a mono printer must refuse (measured 2026-09-02, `docs/ipp-airprint.md`).
+- `resolutions`: 600×600 only. With 300 also advertised, macOS renders normal-quality jobs at 300 dpi (measured 2026-09-02). Draft is a halftone/toner-save preset, not a lower input resolution. 1200×1200 only when section 9 M9 proves it.
+- `color_supported`: `auto` and `monochrome` (clients send `auto`); default `monochrome`.
 - `sides`: one-sided; manual duplex exposed as a vendor option, not as `two-sided-*`.
 - `media`: the 14 sizes from the vendor PPD, with the 12.5 pt hardware margins, `media-source` = auto/manual, `media-type` = the vendor list.
 - `print-quality`: draft/normal/high mapped to presets (section 7).
@@ -739,7 +739,7 @@ Rules:
 3. Answered 2026-09-02: ceil(raster width / 256) × 256 (2.8).
 4. Does `PacketSize 512` reflect USB packetisation the printer needs, or a driver artefact? Nothing in the byte stream is 512-aligned; the bulk OUT endpoint's wMaxPacketSize is 512, which is probably what SpliX means.
 5. Which of the observed PJL `SET` lines (`XIGNOREFF`, `RESOLUTION`, `BITSPERPIXEL`, `PAPERTYPE`, `DUPLEX`, `BINDING`) the printer requires versus ignores.
-6. Which format and resolution iOS 26, iPadOS 26, and macOS 26 send when we advertise `RS300-600`, `W8`, `SRGB24`.
+6. macOS 26 answered 2026-09-02: Apple Raster (`image/urf`), sGray 8-bit; resolution follows print quality when several are advertised (300 for normal, 600 for high), so we advertise `RS600` only. iOS 26 and iPadOS 26: pending the M2 acceptance test.
 7. Answered 2026-09-02: yes. `probe` and `send` claim interface 0 as a normal user (ADR-009 verified).
 8. Does the printer answer PJL `INFO STATUS` / `USTATUS` on bulk IN?
 9. Does any 1200 dpi mode print cleanly?

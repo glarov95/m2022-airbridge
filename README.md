@@ -10,14 +10,16 @@ driver from the bytes up is a good way to learn how printing actually works.
 
 ## Status
 
-**M1 complete, v0.1.** The printer's language is fully decoded and verified against 42 captured
-vendor jobs, and a captured job replayed through our own USB transport prints. Next: the PAPPL
-front end so the iPhone can see the printer (M2). See [PROGRESS.md](PROGRESS.md).
+**M2 in progress.** The printer's language is fully decoded and verified against 42 captured
+vendor jobs; a captured job replayed through our own USB transport prints (v0.1); and the
+Printer Application now runs: it is discoverable over Bonjour, passes IPP Everywhere attribute
+checks, and receives Apple Raster jobs from macOS into a capture device. Next: iPhone test,
+then the raster and halftone pipeline (M3). See [PROGRESS.md](PROGRESS.md).
 
 | Milestone | What it delivers |
 |---|---|
 | M0–M1 ✅ | probe, vendor fixtures, USB transport, `decode` |
-| M2 | printer visible to iPhone/iPad/Mac; incoming raster captured |
+| M2 🔄 | printer visible to iPhone/iPad/Mac; incoming raster captured |
 | M3–M5 | raster, halftone, band codec, QPDL encoder |
 | M6 | first page printed with no vendor code (v0.3) |
 | M7–M8 | launchd service, installer, reliability soak (v1.0) |
@@ -42,8 +44,9 @@ Details: [docs/architecture.md](docs/architecture.md), the printer language in
 ```sh
 xcode-select --install
 brew install cmake ninja pkg-config libusb jpeg-turbo libpng openssl@3
+git submodule update --init            # PAPPL v1.4.12
 export PATH=/opt/homebrew/bin:$PATH
-cmake -S . -B build -G Ninja
+cmake -S . -B build -G Ninja        # builds the pinned PAPPL submodule on first configure
 cmake --build build
 ctest --test-dir build --output-on-failure -LE hardware
 ```
@@ -57,6 +60,7 @@ Hardware tests need the printer switched on and print a page: `ctest --test-dir 
 ./build/src/m2022-airbridge probe --json
 ./build/src/m2022-airbridge send JOB.spl     # write a printer-native job over USB
 ./build/src/m2022-airbridge decode JOB.spl --pbm out   # explain a job; pages to out-p1.pbm ...
+./build/src/m2022-airbridge server --capture DIR       # run the Printer Application (port 8000)
 ```
 
 ## Fixtures
