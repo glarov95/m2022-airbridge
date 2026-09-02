@@ -506,7 +506,7 @@ GitHub Actions on `macos-latest` (arm64): build, unit, integration, fuzz smoke. 
 
 ## 9. Milestones
 
-Each milestone ends with code that stays in the product or the test suite. Each lists what it teaches.
+Each milestone ends with code that stays in the product or the test suite. Each lists what it teaches. Live status, the exact next task and the session log are in `PROGRESS.md`; the per-session working rules, including what to update when a task finishes, are in `CLAUDE.md`.
 
 ### M0 — Environment probe and vendor capture. Done 2026-09-02, one remainder
 
@@ -592,7 +592,7 @@ Section 7 in full: presets, calibration from scans, edge-aware mode, comparison 
 
 ### M11 — Release engineering
 
-Signed and notarized `.pkg`, Homebrew tap, documentation site, CHANGELOG, IPP Everywhere self-certification run recorded. **v2.0** candidates after this: server-side PDF via CoreGraphics (macOS) or MuPDF (Linux), Linux/Raspberry Pi port of the same binary, menu-bar status app.
+Signed and notarized `.pkg`, Homebrew tap, CHANGELOG, IPP Everywhere self-certification run recorded, and the documentation finished as a presentable whole: `README.md` for newcomers, `docs/` explaining every module (index in `docs/README.md`), each with a "What this teaches" section. Documentation is written as modules are built, not at the end. **v2.0** candidates after this: server-side PDF via CoreGraphics (macOS) or MuPDF (Linux), Linux/Raspberry Pi port of the same binary, menu-bar status app.
 
 ---
 
@@ -640,8 +640,10 @@ Each milestone's `docs/` entry ends with a short "what I learned" section writte
 
 ```text
 m2022-airbridge/
-├── README.md
+├── README.md                    presentable entry point
 ├── SPEC.md                      this document
+├── PROGRESS.md                  live status, next task, session log
+├── CLAUDE.md                    working agreement for coding sessions
 ├── LICENSE                      MIT
 ├── CMakeLists.txt
 ├── cmake/
